@@ -131,7 +131,7 @@ class SelfPlay:
             ):
                 assert (
                     len(numpy.array(observation).shape) == 3
-                ), f"Observation should be 3 dimensionnal instead of {len(numpy.array(observation).shape)} dimensionnal. Got observation of shape: {numpy.array(observation).shape}"
+                ), f"Observation should be 3 dimensional instead of {len(numpy.array(observation).shape)} dimensional. Got observation of shape: {numpy.array(observation).shape}"
                 assert (
                     numpy.array(observation).shape == self.config.observation_shape
                 ), f"Observation should match the observation_shape defined in MuZeroConfig. Expected {self.config.observation_shape} but got {numpy.array(observation).shape}."
