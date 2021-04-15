@@ -8,13 +8,15 @@ import random
 import numpy as np
 import torch
 
+from utils import main_parser
 from .abstract_game import AbstractGame
 
 
 class MuZeroConfig:
     def __init__(self):
+        self.args = main_parser()
         self.seed = 0
-        self.max_num_gpus = 1
+        self.max_num_gpus = self.args.num_gpus
 
         self.observation_shape = (8, 8, 119)
         self.action_space = list(range(4672))
@@ -25,11 +27,11 @@ class MuZeroConfig:
         self.opponent = "expert"
 
         ### Self-play
-        self.num_workers = 1
-        self.selfplay_on_gpu = False
+        self.num_workers = self.args.num_workers
+        self.selfplay_on_gpu = False if self.max_num_gpus == 0 else True
         self.max_moves = 512  # based on pseudocode
-        self.num_simulations = 5  # 800
-        self.discount = 1
+        self.num_simulations = self.args.num_sim
+        self.discount = 1  # based on pseudocode
         self.temperature_threshold = None
 
         self.root_dirichlet_alpha = 0.3
@@ -39,7 +41,7 @@ class MuZeroConfig:
         self.pb_c_init = 1.25
 
         ### Network
-        self.network = "resnet"
+        self.network = "resnet" if self.args.minimal_nw is False else "fullyconnected"
         self.support_size = 10
 
         # Residual Network
@@ -98,7 +100,8 @@ class MuZeroConfig:
         self.training_delay = 0  # Number of seconds to wait after each training step
         self.ratio = None  # Desired training steps per self played step ratio. Equivalent to a synchronous version, training can take much longer. Set it to None to disable it
 
-    def visit_softmax_temperature_fn(self, trained_steps):
+    @staticmethod
+    def visit_softmax_temperature_fn(trained_steps):
         if trained_steps < 30:
             return 1.0
         else:

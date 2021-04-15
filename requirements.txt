@@ -5,3 +5,5 @@ gym
 ray
 seaborn
 nevergrad
+gym_chess
+chess
