@@ -21,16 +21,16 @@ class MuZeroConfig:
         self.observation_shape = (8, 8, 119)
         self.action_space = list(range(4672))
         self.players = list(range(2))
-        self.stacked_observations = 2  # 100 in chess we increased the history to the last 100 board states to allow correct prediction of draws
+        self.stacked_observations = 100  # 100 in chess we increased the history to the last 100 board states to allow correct prediction of draws
 
         self.muzero_player = 0
         self.opponent = "expert"
 
         ### Self-play
-        self.num_workers = self.args.num_workers
-        self.selfplay_on_gpu = False
+        self.num_workers = 3
+        self.selfplay_on_gpu = True
         self.max_moves = 512  # based on pseudocode
-        self.num_simulations = self.args.num_sim
+        self.num_simulations = 800
         self.discount = 1  # based on pseudocode
         self.temperature_threshold = None
 
