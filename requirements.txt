@@ -2,7 +2,8 @@ numpy
 torch
 tensorboard
 gym
-ray
+ray[default]
+coloredlogs
 seaborn
 nevergrad
 gym_chess

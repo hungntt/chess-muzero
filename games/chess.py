@@ -16,7 +16,7 @@ class MuZeroConfig:
     def __init__(self):
         self.args = main_parser()
         self.seed = 0
-        self.max_num_gpus = self.args.num_gpus
+        self.max_num_gpus = None
 
         self.observation_shape = (8, 8, 119)
         self.action_space = list(range(4672))
@@ -28,7 +28,7 @@ class MuZeroConfig:
 
         ### Self-play
         self.num_workers = self.args.num_workers
-        self.selfplay_on_gpu = False if self.max_num_gpus == 0 else True
+        self.selfplay_on_gpu = False
         self.max_moves = 512  # based on pseudocode
         self.num_simulations = self.args.num_sim
         self.discount = 1  # based on pseudocode
@@ -41,7 +41,7 @@ class MuZeroConfig:
         self.pb_c_init = 1.25
 
         ### Network
-        self.network = "resnet" if self.args.minimal_nw is False else "fullyconnected"
+        self.network = "resnet"
         self.support_size = 10
 
         # Residual Network
@@ -69,9 +69,9 @@ class MuZeroConfig:
                                          os.path.basename(__file__)[:-3],
                                          datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 10  # Total number of training steps (ie weights update according to a batch)
-        self.batch_size = 1024  # Number of parts of games to train on at each training step
-        self.checkpoint_interval = 2  # Number of training steps before using the model for self-playing
+        self.training_steps = 1000  # Total number of training steps (ie weights update according to a batch)
+        self.batch_size = 64  # Number of parts of games to train on at each training step
+        self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
         self.train_on_gpu = torch.cuda.is_available()  # Train on GPU if available
 

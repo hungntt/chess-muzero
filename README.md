@@ -5,13 +5,15 @@
 ![license MIT](https://img.shields.io/badge/licence-MIT-green)
 [![discord badge](https://img.shields.io/badge/discord-join-6E60EF)](https://discord.gg/GB2vwsF)
 
-# MuZero General
+# MuZero General - Chess Environment
 
 A commented and [documented](https://github.com/werner-duvaud/muzero-general/wiki/MuZero-Documentation) implementation of MuZero based on the Google DeepMind [paper](https://arxiv.org/abs/1911.08265) (Nov 2019) and the associated [pseudocode](https://arxiv.org/src/1911.08265v2/anc/pseudocode.py).
 It is designed to be easily adaptable for every games or reinforcement learning environments (like [gym](https://github.com/openai/gym)). You only need to add a [game file](https://github.com/werner-duvaud/muzero-general/tree/master/games) with the hyperparameters and the game class. Please refer to the [documentation](https://github.com/werner-duvaud/muzero-general/wiki/MuZero-Documentation) and the [example](https://github.com/werner-duvaud/muzero-general/blob/master/games/cartpole.py).
 
 MuZero is a state of the art RL algorithm for board games (Chess, Go, ...) and Atari games.
 It is the successor to [AlphaZero](https://arxiv.org/abs/1712.01815) but without any knowledge of the environment underlying dynamics. MuZero learns a model of the environment and uses an internal representation that contains only the useful information for predicting the reward, value, policy and transitions. MuZero is also close to [Value prediction networks](https://arxiv.org/abs/1707.03497). See [How it works](https://github.com/werner-duvaud/muzero-general/wiki/How-MuZero-works).
+
+This repository is utilized solely for Chess environment.
 
 ## Features
 
@@ -86,6 +88,10 @@ pip install -r requirements.txt
 
 ```bash
 python muzero.py
+```
+To train the agent for Chess:
+```bash
+python muzero.py --chess --num_gpus=4
 ```
 To visualize the training results, run in a new terminal:
 ```bash
