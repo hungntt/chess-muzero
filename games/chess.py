@@ -4,30 +4,28 @@ from abc import ABC
 
 import gym
 import gym_chess
-import random
 import numpy as np
 import torch
 
-from utils import main_parser
 from .abstract_game import AbstractGame
 
 
 class MuZeroConfig:
     def __init__(self):
-        self.args = main_parser()
         self.seed = 0
         self.max_num_gpus = None
 
+        ### Game
         self.observation_shape = (8, 8, 119)
         self.action_space = list(range(4672))
         self.players = list(range(2))
-        self.stacked_observations = 100  # 100 in chess we increased the history to the last 100 board states to allow correct prediction of draws
+        self.stacked_observations = 0  # 100 in chess we increased the history to the last 100 board states to allow correct prediction of draws
 
         self.muzero_player = 0
         self.opponent = "expert"
 
         ### Self-play
-        self.num_workers = 3
+        self.num_workers = 1
         self.selfplay_on_gpu = True
         self.max_moves = 512  # based on pseudocode
         self.num_simulations = 800
@@ -69,7 +67,7 @@ class MuZeroConfig:
                                          os.path.basename(__file__)[:-3],
                                          datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 1000  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 200000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
@@ -87,7 +85,7 @@ class MuZeroConfig:
         ### Replay Buffer
         self.replay_buffer_size = 3000  # 3000 Number of self-play games to keep in the replay buffer
         self.num_unroll_steps = 20  # Number of game moves to keep for every batch element
-        self.td_steps = self.max_moves  # Number of steps in the future to take into account for calculating the target value
+        self.td_steps = 20  # Number of steps in the future to take into account for calculating the target value
         self.PER = True  # Prioritized Replay (See paper appendix Training), select in priority the elements in the replay buffer which are unexpected for the network
         self.PER_alpha = 0.5  # How much prioritization is used, 0 corresponding to the uniform case, paper suggests 1
 
