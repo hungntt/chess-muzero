@@ -66,18 +66,12 @@ class Trainer:
         next_batch = replay_buffer.get_batch.remote()
         # Training loop
         while self.training_step < self.config.training_steps and not ray.get(
-            shared_storage.get_info.remote("terminate")
-        ):
+                shared_storage.get_info.remote("terminate")):
             index_batch, batch = ray.get(next_batch)
             next_batch = replay_buffer.get_batch.remote()
             self.update_lr()
-            (
-                priorities,
-                total_loss,
-                value_loss,
-                reward_loss,
-                policy_loss,
-            ) = self.update_weights(batch)
+
+            (priorities, total_loss, value_loss, reward_loss, policy_loss,) = self.update_weights(batch)
 
             if self.config.PER:
                 # Save new priorities in the replay buffer (See https://arxiv.org/abs/1803.00933)
@@ -125,7 +119,7 @@ class Trainer:
         """
         Perform one training step.
         """
-
+        ray.util.pdb.set_trace()
         (
             observation_batch,
             action_batch,
@@ -275,7 +269,7 @@ class Trainer:
         Update learning rate
         """
         lr = self.config.lr_init * self.config.lr_decay_rate ** (
-            self.training_step / self.config.lr_decay_steps
+                self.training_step / self.config.lr_decay_steps
         )
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
