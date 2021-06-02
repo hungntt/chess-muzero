@@ -29,6 +29,7 @@ class SelfPlay:
         self.model.eval()
 
     def continuous_self_play(self, shared_storage, replay_buffer, test_mode=False):
+        ray.util.pdb.set_trace()
         while ray.get(
             shared_storage.get_info.remote("training_step")
         ) < self.config.training_steps and not ray.get(
@@ -107,9 +108,7 @@ class SelfPlay:
 
         self.close_game()
 
-    def play_game(
-        self, temperature, temperature_threshold, render, opponent, muzero_player
-    ):
+    def play_game(self, temperature, temperature_threshold, render, opponent, muzero_player):
         """
         Play one game with actions based on the Monte Carlo tree search at each moves.
         """
@@ -126,9 +125,7 @@ class SelfPlay:
             self.game.render()
 
         with torch.no_grad():
-            while (
-                    not done and len(game_history.action_history) <= self.config.max_moves
-            ):
+            while not done and len(game_history.action_history) <= self.config.max_moves:
                 assert (
                         len(numpy.array(observation).shape) == 3
                 ), f"Observation should be 3 dimensional instead of {len(numpy.array(observation).shape)} dimensional. Got observation of shape: {numpy.array(observation).shape}"
@@ -136,8 +133,8 @@ class SelfPlay:
                         numpy.array(observation).shape == self.config.observation_shape
                 ), f"Observation should match the observation_shape defined in MuZeroConfig. Expected {self.config.observation_shape} but got {numpy.array(observation).shape}."
                 stacked_observations = game_history.get_stacked_observations(
-                    -1,
-                    self.config.stacked_observations,
+                        -1,
+                        self.config.stacked_observations,
                 )
 
                 # Choose the action
@@ -150,11 +147,10 @@ class SelfPlay:
                         True,
                     )
                     action = self.select_action(
-                        root,
-                        temperature
-                        if not temperature_threshold
-                           or len(game_history.action_history) < temperature_threshold
-                        else 0,
+                            root,
+                            temperature
+                            if not temperature_threshold or len(game_history.action_history) < temperature_threshold
+                            else 0,
                     )
 
                     if render:
@@ -273,6 +269,7 @@ class MCTS:
         We then run a Monte Carlo Tree Search using only action sequences and the model
         learned by the network.
         """
+        ray.util.pdb.set_trace()
         if override_root_with:
             root = override_root_with
             root_predicted_value = None
@@ -382,12 +379,8 @@ class MCTS:
         """
         The score for a node is based on its value, plus an exploration bonus based on the prior.
         """
-        pb_c = (
-                math.log(
-                    (parent.visit_count + self.config.pb_c_base + 1) / self.config.pb_c_base
-                )
-                + self.config.pb_c_init
-        )
+        pb_c = (math.log((parent.visit_count + self.config.pb_c_base + 1) / self.config.pb_c_base)
+                + self.config.pb_c_init)
         pb_c *= math.sqrt(parent.visit_count) / (child.visit_count + 1)
 
         prior_score = pb_c * child.prior
@@ -395,9 +388,9 @@ class MCTS:
         if child.visit_count > 0:
             # Mean value Q
             value_score = min_max_stats.normalize(
-                child.reward
-                + self.config.discount
-                * (child.value() if len(self.config.players) == 1 else -child.value())
+                    child.reward
+                    + self.config.discount
+                    * (child.value() if len(self.config.players) == 1 else -child.value())
             )
         else:
             value_score = 0
@@ -423,9 +416,7 @@ class MCTS:
                 node.visit_count += 1
                 min_max_stats.update(node.reward + self.config.discount * -node.value())
 
-                value = (
-                            -node.reward if node.to_play == to_play else node.reward
-                        ) + self.config.discount * value
+                value = (-node.reward if node.to_play == to_play else node.reward) + self.config.discount * value
 
         else:
             raise NotImplementedError("More than two player mode not implemented.")

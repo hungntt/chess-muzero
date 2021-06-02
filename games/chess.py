@@ -27,8 +27,8 @@ class MuZeroConfig:
         ### Self-play
         self.num_workers = 1
         self.selfplay_on_gpu = True
-        self.max_moves = 512  # based on pseudocode
-        self.num_simulations = 800
+        self.max_moves = 50  # 512 based on pseudocode
+        self.num_simulations = 1  # based on paper
         self.discount = 1  # based on pseudocode
         self.temperature_threshold = None
 
@@ -67,7 +67,7 @@ class MuZeroConfig:
                                          os.path.basename(__file__)[:-3],
                                          datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 200000  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 100  # 200K Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)

@@ -79,17 +79,17 @@ class AbstractNetwork(ABC, torch.nn.Module):
 
 class MuZeroFullyConnectedNetwork(AbstractNetwork):
     def __init__(
-        self,
-        observation_shape,
-        stacked_observations,
-        action_space_size,
-        encoding_size,
-        fc_reward_layers,
-        fc_value_layers,
-        fc_policy_layers,
-        fc_representation_layers,
-        fc_dynamics_layers,
-        support_size,
+            self,
+            observation_shape,
+            stacked_observations,
+            action_space_size,
+            encoding_size,
+            fc_reward_layers,
+            fc_value_layers,
+            fc_policy_layers,
+            fc_representation_layers,
+            fc_dynamics_layers,
+            support_size,
     ):
         super().__init__()
         self.action_space_size = action_space_size
@@ -131,17 +131,13 @@ class MuZeroFullyConnectedNetwork(AbstractNetwork):
         return policy_logits, value
 
     def representation(self, observation):
-        encoded_state = self.representation_network(
-            observation.view(observation.shape[0], -1)
-        )
+        encoded_state = self.representation_network(observation.view(observation.shape[0], -1))
         # Scale encoded state between [0, 1] (See appendix paper Training)
         min_encoded_state = encoded_state.min(1, keepdim=True)[0]
         max_encoded_state = encoded_state.max(1, keepdim=True)[0]
         scale_encoded_state = max_encoded_state - min_encoded_state
         scale_encoded_state[scale_encoded_state < 1e-5] += 1e-5
-        encoded_state_normalized = (
-            encoded_state - min_encoded_state
-        ) / scale_encoded_state
+        encoded_state_normalized = (encoded_state - min_encoded_state) / scale_encoded_state
         return encoded_state_normalized
 
     def dynamics(self, encoded_state, action):
@@ -163,9 +159,7 @@ class MuZeroFullyConnectedNetwork(AbstractNetwork):
         max_next_encoded_state = next_encoded_state.max(1, keepdim=True)[0]
         scale_next_encoded_state = max_next_encoded_state - min_next_encoded_state
         scale_next_encoded_state[scale_next_encoded_state < 1e-5] += 1e-5
-        next_encoded_state_normalized = (
-            next_encoded_state - min_next_encoded_state
-        ) / scale_next_encoded_state
+        next_encoded_state_normalized = (next_encoded_state - min_next_encoded_state) / scale_next_encoded_state
 
         return next_encoded_state_normalized, reward
 
@@ -299,12 +293,12 @@ class DownsampleCNN(torch.nn.Module):
 
 class RepresentationNetwork(torch.nn.Module):
     def __init__(
-        self,
-        observation_shape,
-        stacked_observations,
-        num_blocks,
-        num_channels,
-        downsample,
+            self,
+            observation_shape,
+            stacked_observations,
+            num_blocks,
+            num_channels,
+            downsample,
     ):
         super().__init__()
         self.downsample = downsample
@@ -351,13 +345,13 @@ class RepresentationNetwork(torch.nn.Module):
 
 class DynamicsNetwork(torch.nn.Module):
     def __init__(
-        self,
-        num_blocks,
-        num_channels,
-        reduced_channels_reward,
-        fc_reward_layers,
-        full_support_size,
-        block_output_size_reward,
+            self,
+            num_blocks,
+            num_channels,
+            reduced_channels_reward,
+            fc_reward_layers,
+            full_support_size,
+            block_output_size_reward,
     ):
         super().__init__()
         self.conv = conv3x3(num_channels, num_channels - 1)
@@ -389,17 +383,17 @@ class DynamicsNetwork(torch.nn.Module):
 
 class PredictionNetwork(torch.nn.Module):
     def __init__(
-        self,
-        action_space_size,
-        num_blocks,
-        num_channels,
-        reduced_channels_value,
-        reduced_channels_policy,
-        fc_value_layers,
-        fc_policy_layers,
-        full_support_size,
-        block_output_size_value,
-        block_output_size_policy,
+            self,
+            action_space_size,
+            num_blocks,
+            num_channels,
+            reduced_channels_value,
+            reduced_channels_policy,
+            fc_value_layers,
+            fc_policy_layers,
+            full_support_size,
+            block_output_size_value,
+            block_output_size_policy,
     ):
         super().__init__()
         self.resblocks = torch.nn.ModuleList(
@@ -431,29 +425,29 @@ class PredictionNetwork(torch.nn.Module):
 
 class MuZeroResidualNetwork(AbstractNetwork):
     def __init__(
-        self,
-        observation_shape,
-        stacked_observations,
-        action_space_size,
-        num_blocks,
-        num_channels,
-        reduced_channels_reward,
-        reduced_channels_value,
-        reduced_channels_policy,
-        fc_reward_layers,
-        fc_value_layers,
-        fc_policy_layers,
-        support_size,
-        downsample,
+            self,
+            observation_shape,
+            stacked_observations,
+            action_space_size,
+            num_blocks,
+            num_channels,
+            reduced_channels_reward,
+            reduced_channels_value,
+            reduced_channels_policy,
+            fc_reward_layers,
+            fc_value_layers,
+            fc_policy_layers,
+            support_size,
+            downsample,
     ):
         super().__init__()
         self.action_space_size = action_space_size
         self.full_support_size = 2 * support_size + 1
         block_output_size_reward = (
             (
-                reduced_channels_reward
-                * math.ceil(observation_shape[1] / 16)
-                * math.ceil(observation_shape[2] / 16)
+                    reduced_channels_reward
+                    * math.ceil(observation_shape[1] / 16)
+                    * math.ceil(observation_shape[2] / 16)
             )
             if downsample
             else (reduced_channels_reward * observation_shape[1] * observation_shape[2])
@@ -461,9 +455,9 @@ class MuZeroResidualNetwork(AbstractNetwork):
 
         block_output_size_value = (
             (
-                reduced_channels_value
-                * math.ceil(observation_shape[1] / 16)
-                * math.ceil(observation_shape[2] / 16)
+                    reduced_channels_value
+                    * math.ceil(observation_shape[1] / 16)
+                    * math.ceil(observation_shape[2] / 16)
             )
             if downsample
             else (reduced_channels_value * observation_shape[1] * observation_shape[2])
@@ -471,9 +465,9 @@ class MuZeroResidualNetwork(AbstractNetwork):
 
         block_output_size_policy = (
             (
-                reduced_channels_policy
-                * math.ceil(observation_shape[1] / 16)
-                * math.ceil(observation_shape[2] / 16)
+                    reduced_channels_policy
+                    * math.ceil(observation_shape[1] / 16)
+                    * math.ceil(observation_shape[2] / 16)
             )
             if downsample
             else (reduced_channels_policy * observation_shape[1] * observation_shape[2])
@@ -525,45 +519,45 @@ class MuZeroResidualNetwork(AbstractNetwork):
         # Scale encoded state between [0, 1] (See appendix paper Training)
         min_encoded_state = (
             encoded_state.view(
-                -1,
-                encoded_state.shape[1],
-                encoded_state.shape[2] * encoded_state.shape[3],
+                    -1,
+                    encoded_state.shape[1],
+                    encoded_state.shape[2] * encoded_state.shape[3],
             )
-            .min(2, keepdim=True)[0]
-            .unsqueeze(-1)
+                .min(2, keepdim=True)[0]
+                .unsqueeze(-1)
         )
         max_encoded_state = (
             encoded_state.view(
-                -1,
-                encoded_state.shape[1],
-                encoded_state.shape[2] * encoded_state.shape[3],
+                    -1,
+                    encoded_state.shape[1],
+                    encoded_state.shape[2] * encoded_state.shape[3],
             )
-            .max(2, keepdim=True)[0]
-            .unsqueeze(-1)
+                .max(2, keepdim=True)[0]
+                .unsqueeze(-1)
         )
         scale_encoded_state = max_encoded_state - min_encoded_state
         scale_encoded_state[scale_encoded_state < 1e-5] += 1e-5
         encoded_state_normalized = (
-            encoded_state - min_encoded_state
-        ) / scale_encoded_state
+                                           encoded_state - min_encoded_state
+                                   ) / scale_encoded_state
         return encoded_state_normalized
 
     def dynamics(self, encoded_state, action):
         # Stack encoded_state with a game specific one hot encoded action (See paper appendix Network Architecture)
         action_one_hot = (
             torch.ones(
-                (
-                    encoded_state.shape[0],
-                    1,
-                    encoded_state.shape[2],
-                    encoded_state.shape[3],
-                )
+                    (
+                        encoded_state.shape[0],
+                        1,
+                        encoded_state.shape[2],
+                        encoded_state.shape[3],
+                    )
             )
-            .to(action.device)
-            .float()
+                .to(action.device)
+                .float()
         )
         action_one_hot = (
-            action[:, :, None, None] * action_one_hot / self.action_space_size
+                action[:, :, None, None] * action_one_hot / self.action_space_size
         )
         x = torch.cat((encoded_state, action_one_hot), dim=1)
         next_encoded_state, reward = self.dynamics_network(x)
@@ -571,27 +565,27 @@ class MuZeroResidualNetwork(AbstractNetwork):
         # Scale encoded state between [0, 1] (See paper appendix Training)
         min_next_encoded_state = (
             next_encoded_state.view(
-                -1,
-                next_encoded_state.shape[1],
-                next_encoded_state.shape[2] * next_encoded_state.shape[3],
+                    -1,
+                    next_encoded_state.shape[1],
+                    next_encoded_state.shape[2] * next_encoded_state.shape[3],
             )
-            .min(2, keepdim=True)[0]
-            .unsqueeze(-1)
+                .min(2, keepdim=True)[0]
+                .unsqueeze(-1)
         )
         max_next_encoded_state = (
             next_encoded_state.view(
-                -1,
-                next_encoded_state.shape[1],
-                next_encoded_state.shape[2] * next_encoded_state.shape[3],
+                    -1,
+                    next_encoded_state.shape[1],
+                    next_encoded_state.shape[2] * next_encoded_state.shape[3],
             )
-            .max(2, keepdim=True)[0]
-            .unsqueeze(-1)
+                .max(2, keepdim=True)[0]
+                .unsqueeze(-1)
         )
         scale_next_encoded_state = max_next_encoded_state - min_next_encoded_state
         scale_next_encoded_state[scale_next_encoded_state < 1e-5] += 1e-5
         next_encoded_state_normalized = (
-            next_encoded_state - min_next_encoded_state
-        ) / scale_next_encoded_state
+                                                next_encoded_state - min_next_encoded_state
+                                        ) / scale_next_encoded_state
         return next_encoded_state_normalized, reward
 
     def initial_inference(self, observation):
@@ -601,9 +595,9 @@ class MuZeroResidualNetwork(AbstractNetwork):
         reward = torch.log(
             (
                 torch.zeros(1, self.full_support_size)
-                .scatter(1, torch.tensor([[self.full_support_size // 2]]).long(), 1.0)
-                .repeat(len(observation), 1)
-                .to(observation.device)
+                    .scatter(1, torch.tensor([[self.full_support_size // 2]]).long(), 1.0)
+                    .repeat(len(observation), 1)
+                    .to(observation.device)
             )
         )
         return (
@@ -624,11 +618,11 @@ class MuZeroResidualNetwork(AbstractNetwork):
 
 
 def mlp(
-    input_size,
-    layer_sizes,
-    output_size,
-    output_activation=torch.nn.Identity,
-    activation=torch.nn.ELU,
+        input_size,
+        layer_sizes,
+        output_size,
+        output_activation=torch.nn.Identity,
+        activation=torch.nn.ELU,
 ):
     sizes = [input_size] + layer_sizes + [output_size]
     layers = []
@@ -647,17 +641,17 @@ def support_to_scalar(logits, support_size):
     probabilities = torch.softmax(logits, dim=1)
     support = (
         torch.tensor([x for x in range(-support_size, support_size + 1)])
-        .expand(probabilities.shape)
-        .float()
-        .to(device=probabilities.device)
+            .expand(probabilities.shape)
+            .float()
+            .to(device=probabilities.device)
     )
     x = torch.sum(support * probabilities, dim=1, keepdim=True)
 
     # Invert the scaling (defined in https://arxiv.org/abs/1805.11593)
     x = torch.sign(x) * (
-        ((torch.sqrt(1 + 4 * 0.001 * (torch.abs(x) + 1 + 0.001)) - 1) / (2 * 0.001))
-        ** 2
-        - 1
+            ((torch.sqrt(1 + 4 * 0.001 * (torch.abs(x) + 1 + 0.001)) - 1) / (2 * 0.001))
+            ** 2
+            - 1
     )
     return x
 
@@ -671,7 +665,7 @@ def scalar_to_support(x, support_size):
     x = torch.sign(x) * (torch.sqrt(torch.abs(x) + 1) - 1) + 0.001 * x
 
     # Encode on a vector
-    x = torch.clamp(x, -support_size, support_size)
+    x = torch.clamp(x, -support_size, support_size)  # Clamp x between [-support_size, support_size]
     floor = x.floor()
     prob = x - floor
     logits = torch.zeros(x.shape[0], x.shape[1], 2 * support_size + 1).to(x.device)
