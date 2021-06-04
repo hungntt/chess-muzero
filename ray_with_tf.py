@@ -1,17 +1,3 @@
-import ray
-import numpy as np
-
-ray.init()
-
-
-def random_one_hot_labels(shape):
-    n, n_class = shape
-    classes = np.random.randint(0, n_class, n)
-    labels = np.zeros((n, n_class))
-    labels[np.arange(n), classes] = 1
-    return labels
-
-
 def create_keras_model():
     from tensorflow import keras
     from tensorflow.keras import layers
@@ -30,9 +16,21 @@ def create_keras_model():
     return model
 
 
-# Use GPU wth
-# @ray.remote(num_gpus=1)
-@ray.remote
+import ray
+import numpy as np
+
+ray.init()
+
+
+def random_one_hot_labels(shape):
+    n, n_class = shape
+    classes = np.random.randint(0, n_class, n)
+    labels = np.zeros((n, n_class))
+    labels[np.arange(n), classes] = 1
+    return labels
+
+
+@ray.remote(num_gpus=1)
 class Network(object):
     def __init__(self):
         self.model = create_keras_model()
@@ -51,17 +49,39 @@ class Network(object):
         self.model.set_weights(weights)
 
 
+# Single-processing
+# NetworkActor = Network()
+# result_object_ref = NetworkActor.train()
+# print(result_object_ref)
+
+# Init ray on each process
 NetworkActor = Network.remote()
 result_object_ref = NetworkActor.train.remote()
-ray.get(result_object_ref)
+print(ray.get(result_object_ref))
 
+# Move weight between separate processes
 # NetworkActor2 = Network.remote()
 # NetworkActor2.train.remote()
-# weights = ray.get([NetworkActor.get_weights.remote(),
-#                    NetworkActor2.get_weights.remote()])
+# weights = ray.get(
+#     [NetworkActor.get_weights.remote(),
+#      NetworkActor2.get_weights.remote()])
 #
-# averaged_weights = [(layer1 + layer2) / 2 for layer1, layer2 in zip(weights[0], weights[1])]
+# averaged_weights = [(layer1 + layer2) / 2
+#                     for layer1, layer2 in zip(weights[0], weights[1])]
 #
 # weight_id = ray.put(averaged_weights)
-# [actor.set_weights.remote(weight_id) for actor in [NetworkActor, NetworkActor2]]
+# [
+#     actor.set_weights.remote(weight_id)
+#     for actor in [NetworkActor, NetworkActor2]
+# ]
 # ray.get([actor.train.remote() for actor in [NetworkActor, NetworkActor2]])
+
+# Test init array of actors
+# BufferActor = Buffer.remote()
+#
+# NetworkActors = [
+#     Network.remote(seed) for seed in range(31, 34)
+# ]
+# [NetworkActor.train.remote(BufferActor) for NetworkActor in NetworkActors]
+#
+# print(BufferActor)
