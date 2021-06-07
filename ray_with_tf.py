@@ -30,7 +30,7 @@ def random_one_hot_labels(shape):
     return labels
 
 
-@ray.remote(num_gpus=1)
+@ray.remote(num_gpus=2)
 class Network(object):
     def __init__(self):
         self.model = create_keras_model()
@@ -55,26 +55,27 @@ class Network(object):
 # print(result_object_ref)
 
 # Init ray on each process
-NetworkActor = Network.remote()
-result_object_ref = NetworkActor.train.remote()
-print(ray.get(result_object_ref))
+# NetworkActor = Network.remote()
+# result_object_ref = NetworkActor.train.remote()
+# print(ray.get(result_object_ref))
 
 # Move weight between separate processes
-# NetworkActor2 = Network.remote()
-# NetworkActor2.train.remote()
-# weights = ray.get(
-#     [NetworkActor.get_weights.remote(),
-#      NetworkActor2.get_weights.remote()])
-#
-# averaged_weights = [(layer1 + layer2) / 2
-#                     for layer1, layer2 in zip(weights[0], weights[1])]
-#
-# weight_id = ray.put(averaged_weights)
-# [
-#     actor.set_weights.remote(weight_id)
-#     for actor in [NetworkActor, NetworkActor2]
-# ]
-# ray.get([actor.train.remote() for actor in [NetworkActor, NetworkActor2]])
+NetworkActor = Network.remote()
+NetworkActor2 = Network.remote()
+NetworkActor2.train.remote()
+weights = ray.get(
+    [NetworkActor.get_weights.remote(),
+     NetworkActor2.get_weights.remote()])
+
+averaged_weights = [(layer1 + layer2) / 2
+                    for layer1, layer2 in zip(weights[0], weights[1])]
+
+weight_id = ray.put(averaged_weights)
+[
+    actor.set_weights.remote(weight_id)
+    for actor in [NetworkActor, NetworkActor2]
+]
+print(ray.get([actor.train.remote() for actor in [NetworkActor, NetworkActor2]]))
 
 # Test init array of actors
 # BufferActor = Buffer.remote()
