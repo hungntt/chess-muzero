@@ -5,7 +5,7 @@ ray.init()
 
 @ray.remote
 def f(x):
-    ray.util.pdb.set_trace()
+    # ray.util.pdb.set_trace()
     return x * x
 
 

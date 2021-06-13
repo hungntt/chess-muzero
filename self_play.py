@@ -29,7 +29,6 @@ class SelfPlay:
         self.model.eval()
 
     def continuous_self_play(self, shared_storage, replay_buffer, test_mode=False):
-        ray.util.pdb.set_trace()
         while ray.get(
             shared_storage.get_info.remote("training_step")
         ) < self.config.training_steps and not ray.get(
@@ -105,7 +104,6 @@ class SelfPlay:
                     and not ray.get(shared_storage.get_info.remote("terminate"))
                 ):
                     time.sleep(0.5)
-
         self.close_game()
 
     def play_game(self, temperature, temperature_threshold, render, opponent, muzero_player):
@@ -139,6 +137,7 @@ class SelfPlay:
 
                 # Choose the action
                 if opponent == "self" or muzero_player == self.game.to_play():
+                    # ray.util.pdb.set_trace()
                     root, mcts_info = MCTS(self.config).run(
                         self.model,
                         stacked_observations,
@@ -164,7 +163,8 @@ class SelfPlay:
                     )
 
                 observation, reward, done = self.game.step(action)
-
+                if done:
+                    print(observation[0][0][-4:], reward, done)
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
                     self.game.render()
@@ -269,7 +269,6 @@ class MCTS:
         We then run a Monte Carlo Tree Search using only action sequences and the model
         learned by the network.
         """
-        ray.util.pdb.set_trace()
         if override_root_with:
             root = override_root_with
             root_predicted_value = None
@@ -448,7 +447,6 @@ class Node:
         self.to_play = to_play
         self.reward = reward
         self.hidden_state = hidden_state
-
         policy_values = torch.softmax(
             torch.tensor([policy_logits[0][a] for a in actions]), dim=0
         ).tolist()
