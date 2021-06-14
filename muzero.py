@@ -98,6 +98,7 @@ class MuZero:
             "total_reward": 0,
             "muzero_reward": 0,
             "opponent_reward": 0,
+            "final_reward": 0,
             "episode_length": 0,
             "mean_value": 0,
             "training_step": 0,
@@ -240,6 +241,7 @@ class MuZero:
             "total_reward",
             "muzero_reward",
             "opponent_reward",
+            "final_reward",
             "episode_length",
             "mean_value",
             "training_step",
@@ -272,6 +274,11 @@ class MuZero:
                     "1.Total_reward/5.Opponent_reward",
                     info["opponent_reward"],
                     counter,
+                )
+                writer.add_scalar(
+                        "1.Total_reward/6.Final_reward",
+                        info["final_reward"],
+                        counter,
                 )
                 writer.add_scalar(
                     "2.Workers/1.Self_played_games", info["num_played_games"], counter,

@@ -66,6 +66,7 @@ class SelfPlay:
                     {
                         "episode_length": len(game_history.action_history) - 1,
                         "total_reward": sum(game_history.reward_history),
+                        "final_reward": game_history.reward_history[-1],
                         "mean_value": numpy.mean(
                             [value for value in game_history.root_values if value]
                         ),
