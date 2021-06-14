@@ -10,13 +10,12 @@ def main_parser():
     parser.add_argument('--num_gpus', help='If set, use GPUs', type=int, default=0)
 
     parser.add_argument(
-        '--minimal_nw', help='If set, use minimal network for training', action='store_true', dest='minimal_nw'
+            '--minimal_nw', help='If set, use minimal network for training', action='store_true', dest='minimal_nw'
     )
     parser.set_defaults(minimal_nw=False)
 
     parser.add_argument('--num_sim', help='Set number of simulations in chess self-play', type=int, default=800)
     parser.add_argument('--num_workers', help='Set number of workers in chess self-play', type=int, default=1)
-
     return parser.parse_args()
 
 
@@ -29,3 +28,10 @@ def init_logger(filename, mode='a'):
     coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
     return log
 
+
+class DotDict(dict):
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError

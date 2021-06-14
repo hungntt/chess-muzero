@@ -1,4 +1,5 @@
 import datetime
+import math
 import os
 from abc import ABC
 
@@ -6,22 +7,34 @@ import numpy as np
 import ray
 import torch
 
+from utils import DotDict
 from .abstract_game import AbstractGame
 
 IDLE = 1
 RUNNING = 2
 COMPLETED = 3
 
-NUM_OFFICER = 3
-NUM_TASK = 2
-NUM_EVENT = 2
+
+# NUM_OFFICER = 3
+# NUM_TASK = 2
+# NUM_EVENT = 2
+
+def input_config():
+    ### Input config for Dispatch
+    args = DotDict({
+        'num_officer': int(input("Number of Officers: ")),
+        'num_event': int(input("Number of Events: ")),
+        'num_task': int(input("Number of Tasks")),
+    })
+    return args
 
 
 class MuZeroConfig:
     def __init__(self):
         # More information is available here: https://github.com/werner-duvaud/muzero-general/wiki/Hyperparameter-Optimization
-        self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
-        self.event = Events(NUM_EVENT, NUM_TASK)
+        args = input_config()
+        self.officer = Officers(args.num_officer, args.num_event, args.num_task)
+        self.event = Events(args.num_event, args.num_task)
         self.env = Dispatch(officers=self.officer, events=self.event)
 
         self.seed = 0  # Seed for numpy, torch and the game
@@ -29,7 +42,7 @@ class MuZeroConfig:
 
         ### Game
         self.observation_shape = self.env.get_observation().shape  # Dimensions of the game observation, must be 3D (channel, height, width). For a 1D array, please reshape it to (1, 1, length of array)
-        self.action_space = list(range(NUM_OFFICER))
+        self.action_space = list(range(args.num_officer))
         self.players = list(range(1))  # List of players. You should only edit the length
         self.stacked_observations = 100  # Number of previous observations and previous actions to add to the current observation
 
@@ -40,7 +53,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = True
-        self.max_moves = NUM_OFFICER * 3  # Maximum number of moves if game is not finished before
+        self.max_moves = args.num_officer * 3  # Maximum number of moves if game is not finished before
         self.num_simulations = 25  # Number of future moves self-simulated
         self.discount = 1  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping the temperature given by visit_softmax_temperature_fn to 0 (ie selecting the best action). If None, visit_softmax_temperature_fn is used every time
@@ -118,8 +131,9 @@ class MuZeroConfig:
 
 class Game(AbstractGame, ABC):
     def __init__(self, seed=None):
-        self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
-        self.event = Events(NUM_EVENT, NUM_TASK)
+        self.args = input_config()
+        self.officer = Officers(self.args.num_officer, self.args.num_event, self.args.num_task)
+        self.event = Events(self.args.num_event, self.args.num_task)
         self.env = Dispatch(officers=self.officer, events=self.event)
 
     def step(self, action):
@@ -463,15 +477,20 @@ class Dispatch:
 
         self.event_time_end = event_time_end
         self.event_time_completed = event_time_completed
-
         self.obs = self.get_observation()
         reward = -np.max(event_time_end)
+
+        if done:
+            reward = math.exp(reward)
+        else:
+            reward = 0
+
         return self.get_observation(), reward, done
 
     def legal_actions(self):
         # legals = [i for i, value in enumerate(self.action_table) if value == -1]
         # return legals
-        legals = list(range(NUM_OFFICER))
+        legals = list(range(self.officers.num_officer))
         return legals
 
     def get_observation(self) -> np.ndarray:
