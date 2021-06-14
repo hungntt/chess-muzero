@@ -62,6 +62,7 @@ class SelfPlay:
                 )
 
                 # Save to the shared storage
+                ray.util.pdb.set_trace()
                 shared_storage.set_info.remote(
                     {
                         "episode_length": len(game_history.action_history) - 1,
@@ -166,6 +167,9 @@ class SelfPlay:
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
                     self.game.render()
+
+                if done:
+                    game_history.terminal_reward_history.append(reward)
 
                 game_history.store_search_statistics(root, self.config.action_space)
 
@@ -466,7 +470,7 @@ class Node:
 
 class GameHistory:
     """
-    Store only usefull information of a self-play game.
+    Store only useful information of a self-play game.
     """
 
     def __init__(self):
@@ -474,6 +478,7 @@ class GameHistory:
         self.action_history = []
         self.reward_history = []
         self.to_play_history = []
+        self.terminal_reward_history = []
         self.child_visits = []
         self.root_values = []
         self.reanalysed_predicted_root_values = None
