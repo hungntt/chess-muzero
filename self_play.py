@@ -66,7 +66,6 @@ class SelfPlay:
                     {
                         "episode_length": len(game_history.action_history) - 1,
                         "total_reward": sum(game_history.reward_history),
-                        "final_reward": game_history.reward_history[-1],
                         "mean_value": numpy.mean(
                             [value for value in game_history.root_values if value]
                         ),
@@ -167,9 +166,6 @@ class SelfPlay:
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
                     self.game.render()
-
-                if done:
-                    game_history.terminal_reward_history.append(reward)
 
                 game_history.store_search_statistics(root, self.config.action_space)
 
@@ -470,7 +466,7 @@ class Node:
 
 class GameHistory:
     """
-    Store only useful information of a self-play game.
+    Store only usefull information of a self-play game.
     """
 
     def __init__(self):
@@ -478,7 +474,6 @@ class GameHistory:
         self.action_history = []
         self.reward_history = []
         self.to_play_history = []
-        self.terminal_reward_history = []
         self.child_visits = []
         self.root_values = []
         self.reanalysed_predicted_root_values = None
