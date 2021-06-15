@@ -2,11 +2,11 @@
 This branch contains a pre-trained model (model.checkpoint) of breakout and cartpole for explanation.
 
 ## Usage
-### Install required packages:
+### Install required packages
 ```
 pip install -r requirements.txt
 ```
-### Checkpoint location:
+### Checkpoint location
 Checkpoints are stored in "results/[game name]"
 ### Run
 ```bash
@@ -17,12 +17,26 @@ Then choose:
 - 3 to render self-play games
 - 4 to play against MuZero agents
 
+### Run debugger
+- Only work with Ubuntu OS
+- Install ray nightly-dev version (Download wheel at: https://docs.ray.io/en/master/installation.html)
+```
+pip install -U [link to wheel]
+```  
+- Stick below code as a checkpoint
+```
+ray.util.pdb.set_trace()
+```
+- When run the program, open another terminal and run following command:
+```angular2html
+ray debug
+```
 
 ### Check the Tensorboard
 The online tensorboard will be updated from server at: https://tensorboard.dev/experiment/TBcg1CejT2WZb4V8fyA6AA/ for further information of the model and training system.
 
 ### Model architecture
-- Resnet:
+- Resnet of Breakout:
 ```
 MuZeroResidualNetwork(
 
