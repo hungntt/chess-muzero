@@ -99,6 +99,7 @@ class MuZero:
             "muzero_reward": 0,
             "opponent_reward": 0,
             "final_reward": 0,
+            "final_original_reward": 0,
             "episode_length": 0,
             "mean_value": 0,
             "training_step": 0,

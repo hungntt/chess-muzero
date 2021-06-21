@@ -14,17 +14,17 @@ IDLE = 1
 RUNNING = 2
 COMPLETED = 3
 
+NUM_OFFICER = int(input("O: "))
+NUM_TASK = int(input("T: "))
+NUM_EVENT = int(input("E: "))
 
-# NUM_OFFICER = 3
-# NUM_TASK = 2
-# NUM_EVENT = 2
 
 def input_config():
     ### Input config for Dispatch
     args = DotDict({
-        'num_officer': int(input("Number of Officers: ")),
-        'num_event': int(input("Number of Events: ")),
-        'num_task': int(input("Number of Tasks")),
+        'num_officer': int(input("O: ")),
+        'num_event': int(input("E: ")),
+        'num_task': int(input("T: ")),
     })
     return args
 
@@ -32,9 +32,9 @@ def input_config():
 class MuZeroConfig:
     def __init__(self):
         # More information is available here: https://github.com/werner-duvaud/muzero-general/wiki/Hyperparameter-Optimization
-        args = input_config()
-        self.officer = Officers(args.num_officer, args.num_event, args.num_task)
-        self.event = Events(args.num_event, args.num_task)
+        # args = input_config()
+        self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
+        self.event = Events(NUM_EVENT, NUM_TASK)
         self.env = Dispatch(officers=self.officer, events=self.event)
 
         self.seed = 0  # Seed for numpy, torch and the game
@@ -42,7 +42,7 @@ class MuZeroConfig:
 
         ### Game
         self.observation_shape = self.env.get_observation().shape  # Dimensions of the game observation, must be 3D (channel, height, width). For a 1D array, please reshape it to (1, 1, length of array)
-        self.action_space = list(range(args.num_officer))
+        self.action_space = list(range(NUM_OFFICER))
         self.players = list(range(1))  # List of players. You should only edit the length
         self.stacked_observations = 100  # Number of previous observations and previous actions to add to the current observation
 
@@ -53,7 +53,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = True
-        self.max_moves = args.num_officer * 3  # Maximum number of moves if game is not finished before
+        self.max_moves = NUM_OFFICER * 3  # Maximum number of moves if game is not finished before
         self.num_simulations = 25  # Number of future moves self-simulated
         self.discount = 1  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping the temperature given by visit_softmax_temperature_fn to 0 (ie selecting the best action). If None, visit_softmax_temperature_fn is used every time
@@ -94,8 +94,8 @@ class MuZeroConfig:
                                          os.path.basename(__file__)[:-3], datetime.datetime.now().strftime(
                     "%Y-%m-%d--%H-%M-%S"))  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 1000000  # Total number of training steps (ie weights update according to a batch)
-        self.batch_size = 64  # Number of parts of games to train on at each training step
+        self.training_steps = 500000  # Total number of training steps (ie weights update according to a batch)
+        self.batch_size = 32  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
         self.train_on_gpu = torch.cuda.is_available()  # Train on GPU if available
@@ -131,9 +131,9 @@ class MuZeroConfig:
 
 class Game(AbstractGame, ABC):
     def __init__(self, seed=None):
-        self.args = input_config()
-        self.officer = Officers(self.args.num_officer, self.args.num_event, self.args.num_task)
-        self.event = Events(self.args.num_event, self.args.num_task)
+        # self.args = input_config()
+        self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
+        self.event = Events(NUM_EVENT, NUM_TASK)
         self.env = Dispatch(officers=self.officer, events=self.event)
 
     def step(self, action):
@@ -482,10 +482,11 @@ class Dispatch:
 
         return self.get_observation(), reward, done
 
-    def legal_actions(self):
+    @staticmethod
+    def legal_actions():
         # legals = [i for i, value in enumerate(self.action_table) if value == -1]
         # return legals
-        legals = list(range(self.officers.num_officer))
+        legals = list(range(NUM_OFFICER))
         return legals
 
     def get_observation(self) -> np.ndarray:
