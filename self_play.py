@@ -67,6 +67,7 @@ class SelfPlay:
                         "episode_length": len(game_history.action_history) - 1,
                         "total_reward": sum(game_history.reward_history),
                         "final_reward": game_history.reward_history[-1],
+                        "final_original_reward": game_history.original_reward_history[0],
                         "mean_value": numpy.mean(
                             [value for value in game_history.root_values if value]
                         ),
@@ -169,7 +170,12 @@ class SelfPlay:
                     self.game.render()
 
                 if done:
-                    game_history.terminal_reward_history.append(reward)
+                    # Add the original reward for further use or comparison
+                    game_history.original_reward_history.append(reward)
+                    # Normalize reward to exponential function
+                    reward = math.exp(reward)
+                else:
+                    reward = 0
 
                 game_history.store_search_statistics(root, self.config.action_space)
 
@@ -476,9 +482,9 @@ class GameHistory:
     def __init__(self):
         self.observation_history = []
         self.action_history = []
+        self.original_reward_history = []
         self.reward_history = []
         self.to_play_history = []
-        self.terminal_reward_history = []
         self.child_visits = []
         self.root_values = []
         self.reanalysed_predicted_root_values = None

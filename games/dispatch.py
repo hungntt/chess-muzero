@@ -480,11 +480,6 @@ class Dispatch:
         self.obs = self.get_observation()
         reward = -np.max(event_time_end)
 
-        if done:
-            reward = math.exp(reward)
-        else:
-            reward = 0
-
         return self.get_observation(), reward, done
 
     def legal_actions(self):
