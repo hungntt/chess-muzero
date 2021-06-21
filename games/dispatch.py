@@ -14,9 +14,9 @@ IDLE = 1
 RUNNING = 2
 COMPLETED = 3
 
-NUM_OFFICER = int(input("O: "))
-NUM_TASK = int(input("T: "))
-NUM_EVENT = int(input("E: "))
+NUM_OFFICER = 5
+NUM_TASK = 4
+NUM_EVENT = 4
 
 
 def input_config():
@@ -90,9 +90,10 @@ class MuZeroConfig:
         self.fc_policy_layers = [16]  # Define the hidden layers in the policy network
 
         ### Training
+        self.configuration = f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
                                          os.path.basename(__file__)[:-3], datetime.datetime.now().strftime(
-                    "%Y-%m-%d--%H-%M-%S"))  # Path to store the model weights and TensorBoard logs
+                    "%Y-%m-%d--%H-%M-%S"), self.configuration)  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
         self.training_steps = 500000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 32  # Number of parts of games to train on at each training step
