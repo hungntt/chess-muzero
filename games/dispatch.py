@@ -306,21 +306,23 @@ class Dispatch:
         for i in range(self.events.num_event):
             event_list.append({"task_id": -1, "start_time": -1, "end_time": -1, "officer_assigned": -1})
 
-        # book-keeping which officer is working
+        # book-keeping which officer is working [False, False, False]
         officer_occupied = [False] * self.officers.num_officer
 
-        # book-keeping officer location: -1: Base-station, 0:event_0, ...
+        # book-keeping officer location: -1: Base-station, 0:event_0, ... [-1, -1, -1]
         officer_location = [-1] * self.officers.num_officer
 
         # keep track of status of event_task_status:
+        # array([[1, 1],
+        #        [1, 1]])
         event_task_status = self.event_task_status_start.copy()
 
-        # get the sequence of event will happen
+        # get the sequence of event will happen occurrence = {0: 7, 1: 8}
         occurrence = {}
         for i, occur_time in enumerate(self.events.occurrence):
             occurrence[i] = occur_time
 
-        # book-keeping for end-time of event
+        # book-keeping for end-time of event end_time = {0: -1, 1: -1}
         end_time = {}
         for i in range(len(occurrence)):
             end_time[i] = -1
