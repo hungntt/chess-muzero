@@ -7,6 +7,9 @@ import torch
 
 import models
 
+E = 2.718282
+P = 2.71
+
 
 @ray.remote
 class SelfPlay:
@@ -30,23 +33,23 @@ class SelfPlay:
 
     def continuous_self_play(self, shared_storage, replay_buffer, test_mode=False):
         while ray.get(
-            shared_storage.get_info.remote("training_step")
+                shared_storage.get_info.remote("training_step")
         ) < self.config.training_steps and not ray.get(
-            shared_storage.get_info.remote("terminate")
+                shared_storage.get_info.remote("terminate")
         ):
             self.model.set_weights(ray.get(shared_storage.get_info.remote("weights")))
 
             if not test_mode:
                 game_history = self.play_game(
-                    self.config.visit_softmax_temperature_fn(
-                        trained_steps=ray.get(
-                            shared_storage.get_info.remote("training_step")
-                        )
-                    ),
-                    self.config.temperature_threshold,
-                    False,
-                    "self",
-                    0,
+                        self.config.visit_softmax_temperature_fn(
+                                trained_steps=ray.get(
+                                        shared_storage.get_info.remote("training_step")
+                                )
+                        ),
+                        self.config.temperature_threshold,
+                        False,
+                        "self",
+                        0,
                 )
 
                 replay_buffer.save_game.remote(game_history, shared_storage)
@@ -54,41 +57,42 @@ class SelfPlay:
             else:
                 # Take the best action (no exploration) in test mode
                 game_history = self.play_game(
-                    0,
-                    self.config.temperature_threshold,
-                    False,
-                    "self" if len(self.config.players) == 1 else self.config.opponent,
-                    self.config.muzero_player,
+                        0,
+                        self.config.temperature_threshold,
+                        False,
+                        "self" if len(self.config.players) == 1 else self.config.opponent,
+                        self.config.muzero_player,
                 )
 
                 # Save to the shared storage
                 shared_storage.set_info.remote(
-                    {
-                        "episode_length": len(game_history.action_history) - 1,
-                        "total_reward": sum(game_history.reward_history),
-                        "final_reward": game_history.reward_history[-1],
-                        "final_original_reward": game_history.original_reward_history[-1],
-                        "mean_value": numpy.mean(
-                            [value for value in game_history.root_values if value]
-                        ),
-                    }
+                        {
+                            "episode_length": len(game_history.action_history) - 1,
+                            "action_table": game_history.action_history,
+                            "total_reward": sum(game_history.reward_history),
+                            "final_reward": game_history.reward_history[-1],
+                            "final_original_reward": game_history.original_reward_history[-1],
+                            "mean_value": numpy.mean(
+                                    [value for value in game_history.root_values if value]
+                            ),
+                        }
                 )
                 if 1 < len(self.config.players):
                     shared_storage.set_info.remote(
-                        {
-                            "muzero_reward": sum(
-                                reward
-                                for i, reward in enumerate(game_history.reward_history)
-                                if game_history.to_play_history[i - 1]
-                                == self.config.muzero_player
-                            ),
-                            "opponent_reward": sum(
-                                reward
-                                for i, reward in enumerate(game_history.reward_history)
-                                if game_history.to_play_history[i - 1]
-                                != self.config.muzero_player
-                            ),
-                        }
+                            {
+                                "muzero_reward": sum(
+                                        reward
+                                        for i, reward in enumerate(game_history.reward_history)
+                                        if game_history.to_play_history[i - 1]
+                                        == self.config.muzero_player
+                                ),
+                                "opponent_reward": sum(
+                                        reward
+                                        for i, reward in enumerate(game_history.reward_history)
+                                        if game_history.to_play_history[i - 1]
+                                        != self.config.muzero_player
+                                ),
+                            }
                     )
 
             # Managing the self-play / training ratio
@@ -96,14 +100,14 @@ class SelfPlay:
                 time.sleep(self.config.self_play_delay)
             if not test_mode and self.config.ratio:
                 while (
-                    ray.get(shared_storage.get_info.remote("training_step"))
-                    / max(
+                        ray.get(shared_storage.get_info.remote("training_step"))
+                        / max(
                         1, ray.get(shared_storage.get_info.remote("num_played_steps"))
-                    )
-                    < self.config.ratio
-                    and ray.get(shared_storage.get_info.remote("training_step"))
-                    < self.config.training_steps
-                    and not ray.get(shared_storage.get_info.remote("terminate"))
+                )
+                        < self.config.ratio
+                        and ray.get(shared_storage.get_info.remote("training_step"))
+                        < self.config.training_steps
+                        and not ray.get(shared_storage.get_info.remote("terminate"))
                 ):
                     time.sleep(0.5)
         self.close_game()
@@ -142,11 +146,11 @@ class SelfPlay:
                 if opponent == "self" or muzero_player == self.game.to_play():
                     # ray.util.pdb.set_trace()
                     root, mcts_info = MCTS(self.config).run(
-                        self.model,
-                        stacked_observations,
-                        self.game.legal_actions(),
-                        self.game.to_play(),
-                        True,
+                            self.model,
+                            stacked_observations,
+                            self.game.legal_actions(),
+                            self.game.to_play(),
+                            True,
                     )
                     action = self.select_action(
                             root,
@@ -158,11 +162,11 @@ class SelfPlay:
                     if render:
                         print(f'Tree depth: {mcts_info["max_tree_depth"]}')
                         print(
-                            f"Root value for player {self.game.to_play()}: {root.value():.2f}"
+                                f"Root value for player {self.game.to_play()}: {root.value():.2f}"
                         )
                 else:
                     action, root = self.select_opponent_action(
-                        opponent, stacked_observations
+                            opponent, stacked_observations
                     )
 
                 observation, reward, done = self.game.step(action)
@@ -173,8 +177,8 @@ class SelfPlay:
                 if done:
                     # Add the original reward for further use or comparison
                     game_history.original_reward_history.append(reward)
-                    # Normalize reward to exponential function
-                    reward = math.exp(reward)
+                    # Normalize reward to exponential function (e/2.71)^(-reward) to keep in [0,1)
+                    reward = math.pow((E / P), reward)
                 else:
                     reward = 0
 
@@ -197,16 +201,16 @@ class SelfPlay:
         """
         if opponent == "human":
             root, mcts_info = MCTS(self.config).run(
-                self.model,
-                stacked_observations,
-                self.game.legal_actions(),
-                self.game.to_play(),
-                True,
+                    self.model,
+                    stacked_observations,
+                    self.game.legal_actions(),
+                    self.game.to_play(),
+                    True,
             )
             print(f'Tree depth: {mcts_info["max_tree_depth"]}')
             print(f"Root value for player {self.game.to_play()}: {root.value():.2f}")
             print(
-                f"Player {self.game.to_play()} turn. MuZero suggests {self.game.action_to_string(self.select_action(root, 0))}"
+                    f"Player {self.game.to_play()} turn. MuZero suggests {self.game.action_to_string(self.select_action(root, 0))}"
             )
             return self.game.human_to_action(), root
         elif opponent == "expert":
@@ -216,13 +220,13 @@ class SelfPlay:
                 self.game.legal_actions()
             ), f"Legal actions should not be an empty array. Got {self.game.legal_actions()}."
             assert set(self.game.legal_actions()).issubset(
-                set(self.config.action_space)
+                    set(self.config.action_space)
             ), "Legal actions should be a subset of the action space."
 
             return numpy.random.choice(self.game.legal_actions()), None
         else:
             raise NotImplementedError(
-                'Wrong argument: "opponent" argument should be "self", "human", "expert" or "random"'
+                    'Wrong argument: "opponent" argument should be "self", "human", "expert" or "random"'
             )
 
     @staticmethod
@@ -233,7 +237,7 @@ class SelfPlay:
         in the config.
         """
         visit_counts = numpy.array(
-            [child.visit_count for child in node.children.values()], dtype="int32"
+                [child.visit_count for child in node.children.values()], dtype="int32"
         )
         actions = [action for action in node.children.keys()]
         if temperature == 0:
@@ -244,7 +248,7 @@ class SelfPlay:
             # See paper appendix Data Generation
             visit_count_distribution = visit_counts ** (1 / temperature)
             visit_count_distribution = visit_count_distribution / sum(
-                visit_count_distribution
+                    visit_count_distribution
             )
             action = numpy.random.choice(actions, p=visit_count_distribution)
 
@@ -296,27 +300,27 @@ class MCTS:
                 hidden_state,
             ) = model.initial_inference(observation)
             root_predicted_value = models.support_to_scalar(
-                root_predicted_value, self.config.support_size
+                    root_predicted_value, self.config.support_size
             ).item()
             reward = models.support_to_scalar(reward, self.config.support_size).item()
             assert (
                 legal_actions
             ), f"Legal actions should not be an empty array. Got {legal_actions}."
             assert set(legal_actions).issubset(
-                set(self.config.action_space)
+                    set(self.config.action_space)
             ), "Legal actions should be a subset of the action space."
             root.expand(
-                legal_actions,
-                to_play,
-                reward,
-                policy_logits,
-                hidden_state,
+                    legal_actions,
+                    to_play,
+                    reward,
+                    policy_logits,
+                    hidden_state,
             )
 
         if add_exploration_noise:
             root.add_exploration_noise(
-                dirichlet_alpha=self.config.root_dirichlet_alpha,
-                exploration_fraction=self.config.root_exploration_fraction,
+                    dirichlet_alpha=self.config.root_dirichlet_alpha,
+                    exploration_fraction=self.config.root_exploration_fraction,
             )
 
         min_max_stats = MinMaxStats()
@@ -343,17 +347,17 @@ class MCTS:
             # state given an action and the previous hidden state
             parent = search_path[-2]
             value, reward, policy_logits, hidden_state = model.recurrent_inference(
-                parent.hidden_state,
-                torch.tensor([[action]]).to(parent.hidden_state.device),
+                    parent.hidden_state,
+                    torch.tensor([[action]]).to(parent.hidden_state.device),
             )
             value = models.support_to_scalar(value, self.config.support_size).item()
             reward = models.support_to_scalar(reward, self.config.support_size).item()
             node.expand(
-                self.config.action_space,
-                virtual_to_play,
-                reward,
-                policy_logits,
-                hidden_state,
+                    self.config.action_space,
+                    virtual_to_play,
+                    reward,
+                    policy_logits,
+                    hidden_state,
             )
 
             self.backpropagate(search_path, value, virtual_to_play, min_max_stats)
@@ -371,15 +375,15 @@ class MCTS:
         Select the child with the highest UCB score.
         """
         max_ucb = max(
-            self.ucb_score(node, child, min_max_stats)
-            for action, child in node.children.items()
+                self.ucb_score(node, child, min_max_stats)
+                for action, child in node.children.items()
         )
         action = numpy.random.choice(
-            [
-                action
-                for action, child in node.children.items()
-                if self.ucb_score(node, child, min_max_stats) == max_ucb
-            ]
+                [
+                    action
+                    for action, child in node.children.items()
+                    if self.ucb_score(node, child, min_max_stats) == max_ucb
+                ]
         )
         return action, node.children[action]
 
@@ -457,7 +461,7 @@ class Node:
         self.reward = reward
         self.hidden_state = hidden_state
         policy_values = torch.softmax(
-            torch.tensor([policy_logits[0][a] for a in actions]), dim=0
+                torch.tensor([policy_logits[0][a] for a in actions]), dim=0
         ).tolist()
         policy = {a: policy_values[i] for i, a in enumerate(actions)}
         for action, p in policy.items():
@@ -498,12 +502,12 @@ class GameHistory:
         if root is not None:
             sum_visits = sum(child.visit_count for child in root.children.values())
             self.child_visits.append(
-                [
-                    root.children[a].visit_count / sum_visits
-                    if a in root.children
-                    else 0
-                    for a in action_space
-                ]
+                    [
+                        root.children[a].visit_count / sum_visits
+                        if a in root.children
+                        else 0
+                        for a in action_space
+                    ]
             )
 
             self.root_values.append(root.value())
@@ -524,24 +528,24 @@ class GameHistory:
         ):
             if 0 <= past_observation_index:
                 previous_observation = numpy.concatenate(
-                    (
-                        self.observation_history[past_observation_index],
-                        [
-                            numpy.ones_like(stacked_observations[0])
-                            * self.action_history[past_observation_index + 1]
-                        ],
-                    )
+                        (
+                            self.observation_history[past_observation_index],
+                            [
+                                numpy.ones_like(stacked_observations[0])
+                                * self.action_history[past_observation_index + 1]
+                            ],
+                        )
                 )
             else:
                 previous_observation = numpy.concatenate(
-                    (
-                        numpy.zeros_like(self.observation_history[index]),
-                        [numpy.zeros_like(stacked_observations[0])],
-                    )
+                        (
+                            numpy.zeros_like(self.observation_history[index]),
+                            [numpy.zeros_like(stacked_observations[0])],
+                        )
                 )
 
             stacked_observations = numpy.concatenate(
-                (stacked_observations, previous_observation)
+                    (stacked_observations, previous_observation)
             )
 
         return stacked_observations

@@ -14,8 +14,8 @@ def main_parser():
     )
     parser.set_defaults(minimal_nw=False)
 
-    parser.add_argument('--num_sim', help='Set number of simulations in chess self-play', type=int, default=800)
-    parser.add_argument('--num_workers', help='Set number of workers in chess self-play', type=int, default=1)
+    parser.add_argument('--num_sim', help='Set number of simulations in chess self-play', type=int, default=int(5e5))
+    parser.add_argument('--num_officers', help='Set number of workers in chess self-play', type=int, default=1)
     return parser.parse_args()
 
 

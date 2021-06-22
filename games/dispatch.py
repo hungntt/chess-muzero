@@ -44,7 +44,7 @@ class MuZeroConfig:
         self.observation_shape = self.env.get_observation().shape  # Dimensions of the game observation, must be 3D (channel, height, width). For a 1D array, please reshape it to (1, 1, length of array)
         self.action_space = list(range(NUM_OFFICER))
         self.players = list(range(1))  # List of players. You should only edit the length
-        self.stacked_observations = 100  # Number of previous observations and previous actions to add to the current observation
+        self.stacked_observations = 0  # Number of previous observations and previous actions to add to the current observation
 
         # Evaluate
         self.muzero_player = 0  # Turn Muzero begins to play (0: MuZero plays first, 1: MuZero plays second)
@@ -53,7 +53,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = True
-        self.max_moves = NUM_OFFICER * 3  # Maximum number of moves if game is not finished before
+        self.max_moves = NUM_OFFICER * NUM_TASK * NUM_EVENT  # Maximum number of moves if game is not finished before
         self.num_simulations = 25  # Number of future moves self-simulated
         self.discount = 1  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping the temperature given by visit_softmax_temperature_fn to 0 (ie selecting the best action). If None, visit_softmax_temperature_fn is used every time
@@ -68,11 +68,11 @@ class MuZeroConfig:
 
         ### Network
         self.network = "resnet"  # "resnet" / "fullyconnected"
-        self.support_size = 10  # Value and reward are scaled (with almost sqrt) and encoded on a vector with a range of -support_size to support_size. Choose it so that support_size <= sqrt(max(abs(discounted reward)))
+        self.support_size = 50  # Value and reward are scaled (with almost sqrt) and encoded on a vector with a range of -support_size to support_size. Choose it so that support_size <= sqrt(max(abs(discounted reward)))
 
         # Residual Network
         self.downsample = False  # Downsample observations before representation network, False / "CNN" (lighter) / "resnet" (See paper appendix Network Architecture)
-        self.blocks = 1  # Number of blocks in the ResNet
+        self.blocks = 4  # Number of blocks in the ResNet
         self.channels = 16  # Number of channels in the ResNet
         self.reduced_channels_reward = 16  # Number of channels in reward head
         self.reduced_channels_value = 16  # Number of channels in value head
@@ -96,7 +96,7 @@ class MuZeroConfig:
                     "%Y-%m-%d--%H-%M-%S"), self.configuration)  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
         self.training_steps = 500000  # Total number of training steps (ie weights update according to a batch)
-        self.batch_size = 32  # Number of parts of games to train on at each training step
+        self.batch_size = 64  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
         self.train_on_gpu = torch.cuda.is_available()  # Train on GPU if available

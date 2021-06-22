@@ -71,7 +71,8 @@ class MuZero:
                 or self.config.reanalyse_on_gpu
         ):
             raise ValueError(
-                "Inconsistent MuZeroConfig: max_num_gpus = 0 but GPU requested by selfplay_on_gpu or train_on_gpu or reanalyse_on_gpu."
+                "Inconsistent MuZeroConfig: max_num_gpus = 0 but "
+                "GPU requested by selfplay_on_gpu or train_on_gpu or reanalyse_on_gpu."
             )
         if (
                 self.config.selfplay_on_gpu
@@ -98,6 +99,7 @@ class MuZero:
             "total_reward": 0,
             "muzero_reward": 0,
             "opponent_reward": 0,
+            "action_table": "",
             "final_reward": 0,
             "final_original_reward": 0,
             "episode_length": 0,
@@ -221,7 +223,8 @@ class MuZero:
         writer = SummaryWriter(self.config.results_path)
 
         print(
-            "\nTraining...\nRun tensorboard --logdir ./results and go to http://localhost:6006/ to see in real time the training performance.\n"
+            "\nTraining...\nRun tensorboard --logdir ./results "
+            "and go to http://localhost:6006/ to see in real time the training performance.\n"
         )
 
         # Save hyperparameters to TensorBoard
@@ -247,6 +250,7 @@ class MuZero:
             "episode_length",
             "mean_value",
             "training_step",
+            "action_table",
             "lr",
             "total_loss",
             "value_loss",
@@ -260,6 +264,9 @@ class MuZero:
         try:
             while info["training_step"] < self.config.training_steps:
                 info = ray.get(self.shared_storage_worker.get_info.remote(keys))
+                # Logging for actions
+                writer.add_text("Action_table", info["action_table"], counter)
+                # Logging for rewards
                 writer.add_scalar(
                     "1.Total_reward/1.Total_reward", info["total_reward"], counter,
                 )
@@ -308,7 +315,9 @@ class MuZero:
                 writer.add_scalar("3.Loss/Reward_loss", info["reward_loss"], counter)
                 writer.add_scalar("3.Loss/Policy_loss", info["policy_loss"], counter)
                 print(
-                    f'Final reward: {info["final_original_reward"]:.2f}. Training step: {info["training_step"]}/{self.config.training_steps}. Played games: {info["num_played_games"]}. Loss: {info["total_loss"]:.2f}',
+                    f'Final reward: {info["final_original_reward"]:.2f}. Training step: {info["training_step"]}/'
+                    f'{self.config.training_steps}. Played games: {info["num_played_games"]}. '
+                    f'Loss: {info["total_loss"]:.2f}',
                     end="\r",
                 )
                 counter += 1
