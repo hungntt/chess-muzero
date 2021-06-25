@@ -9,7 +9,7 @@ import models
 
 E = 2.718282
 P = 2.71
-
+K = 5
 
 @ray.remote
 class SelfPlay:
@@ -464,8 +464,41 @@ class Node:
                 torch.tensor([policy_logits[0][a] for a in actions]), dim=0
         ).tolist()
         policy = {a: policy_values[i] for i, a in enumerate(actions)}
+        policy = self.add_dirichlet_noise(policy,
+                                          dirichlet_alpha=0.1,
+                                          exploration_fraction=0.25)
+        policy = self.transform_distribution(policy, K)
         for action, p in policy.items():
             self.children[action] = Node(p)
+
+    @staticmethod
+    ### This method only applied for sample-based approach
+    def add_dirichlet_noise(policy, dirichlet_alpha, exploration_fraction):
+        ray.util.pdb.set_trace()
+        noise = numpy.random.dirichlet([dirichlet_alpha] * len(policy))
+        frac = exploration_fraction
+        for (i, p), noise in zip(enumerate(policy), noise):
+            policy[i] = p * (1 - frac) + noise * frac
+
+        return policy
+
+    @staticmethod
+    def transform_distribution(policy, k):
+        # N = |A|, K top policy in N (K<N), R remaining policy = N-K
+        policy_list = numpy.array(list(policy.items()))
+        top_k_policy_index = policy_list.argsort()[-int(k):]
+        sum_r_policy = 0
+        for i, p in enumerate(policy):
+            if i not in top_k_policy_index:
+                sum_r_policy += policy[i]
+                policy[i] = 0
+
+        # Divide equally remaining policy for top K policy
+        dist_for_k = sum_r_policy / k
+        for i in top_k_policy_index:
+            policy[i] += dist_for_k
+            policy[i] = math.ceil(policy[i])
+        return policy
 
     def add_exploration_noise(self, dirichlet_alpha, exploration_fraction):
         """
