@@ -112,7 +112,13 @@ class SelfPlay:
                     time.sleep(0.5)
         self.close_game()
 
-    def play_game(self, temperature, temperature_threshold, render, opponent, muzero_player):
+    def play_game(self,
+                  temperature,
+                  temperature_threshold,
+                  render,
+                  opponent,
+                  muzero_player,
+                  arena=False):
         """
         Play one game with actions based on the Monte Carlo tree search at each moves.
         """
@@ -179,6 +185,8 @@ class SelfPlay:
                     game_history.original_reward_history.append(reward)
                     # Normalize reward to exponential function (e/2.71)^(-reward) to keep in [0,1)
                     reward = math.pow((E / P), reward)
+                    if arena:
+                        self.game.render()
                 else:
                     reward = 0
 
@@ -191,6 +199,86 @@ class SelfPlay:
                 game_history.to_play_history.append(self.game.to_play())
 
         return game_history
+
+    def arena_play_games(self,
+                         temperature,
+                         temperature_threshold,
+                         opponent,
+                         ):
+        game_history = GameHistory()
+        observation = self.game.reset()
+        game_history.action_history.append(0)
+        game_history.observation_history.append(observation)
+        game_history.reward_history.append(0)
+        game_history.to_play_history.append(self.game.to_play())
+        game_history.original_reward_history.append(0)
+        # Random agent
+        game_history.random_reward.append(0)
+
+        done = False
+
+        with torch.no_grad():
+            while not done and len(game_history.action_history) <= self.config.max_moves:
+                assert (
+                        len(numpy.array(observation).shape) == 3
+                ), f"Observation should be 3 dimensional instead of {len(numpy.array(observation).shape)} " \
+                   f"dimensional. Got observation of shape: {numpy.array(observation).shape}"
+                assert (
+                        numpy.array(observation).shape == self.config.observation_shape
+                ), f"Observation should match the observation_shape defined in MuZeroConfig. Expected " \
+                   f"{self.config.observation_shape} but got {numpy.array(observation).shape}."
+                stacked_observations = game_history.get_stacked_observations(
+                        -1,
+                        self.config.stacked_observations,
+                )
+
+                # ==== MuZero agent ====
+                root, mcts_info = MCTS(self.config).run(
+                        self.model,
+                        stacked_observations,
+                        self.game.legal_actions(),
+                        self.game.to_play(),
+                        True,
+                )
+
+                action = self.select_action(
+                        root,
+                        temperature
+                        if not temperature_threshold or len(game_history.action_history) < temperature_threshold else 0,
+                )
+
+                observation, reward, done = self.game.step(action)
+                if done:
+                    game_history.original_reward_history.append(reward)
+                    reward = math.pow((E / P), reward)
+                else:
+                    reward = 0
+
+                game_history.store_search_statistics(root, self.config.action_space)
+
+                # Next batch
+                game_history.action_history.append(action)
+                game_history.observation_history.append(observation)
+                game_history.reward_history.append(reward)
+                game_history.to_play_history.append(self.game.to_play())
+
+        # ==== Random agent ====
+
+        if opponent == "random":
+            r_assignment = self.random_action()
+
+            r_observation, r_reward, r_done = self.game.step(r_assignment)
+
+            game_history.random_reward.append(r_reward)
+
+        return game_history
+
+    def random_action(self):
+        assignment = numpy.random.randint(0, )
+        action = numpy.random.randint(0,
+                                      self.officers.num_officer,
+                                      size=(self.events.num_event, self.events.num_task))
+        return action
 
     def close_game(self):
         self.game.close()
@@ -493,6 +581,8 @@ class GameHistory:
         self.child_visits = []
         self.root_values = []
         self.reanalysed_predicted_root_values = None
+        # For Random agent
+        self.random_reward = []
         # For PER
         self.priorities = None
         self.game_priority = None

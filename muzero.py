@@ -102,6 +102,7 @@ class MuZero:
             "action_table": "",
             "final_reward": 0,
             "final_original_reward": 0,
+            "random_reward": 0,
             "episode_length": 0,
             "mean_value": 0,
             "training_step": 0,
@@ -247,6 +248,7 @@ class MuZero:
             "opponent_reward",
             "final_reward",
             "final_original_reward",
+            "random_reward",
             "episode_length",
             "mean_value",
             "training_step",
@@ -286,8 +288,12 @@ class MuZero:
                         "1.Total_reward/6.Final_reward", info["final_reward"], counter,
                 )
                 writer.add_scalar(
-                        "1.Total_reward/7.Final_original_reward", info["final_original_reward"], counter,
+                        "1.Total_reward/7.Final_original_reward",
+                        {"muzero": info["final_original_reward"],
+                         "random": info["random_reward"]},
+                        counter,
                 )
+                # Workers
                 writer.add_scalar(
                     "2.Workers/1.Self_played_games", info["num_played_games"], counter,
                 )
@@ -308,6 +314,7 @@ class MuZero:
                     counter,
                 )
                 writer.add_scalar("2.Workers/6.Learning_rate", info["lr"], counter)
+                # Loss
                 writer.add_scalar(
                     "3.Loss/1.Total_weighted_loss", info["total_loss"], counter
                 )
@@ -471,6 +478,36 @@ class MuZero:
         input("Press enter to close all plots")
         dm.close_all()
 
+    def arena(self,
+              render=True,
+              opponent=None,
+              muzero_player=None,
+              num_arena=1,
+              num_gpus=0):
+        opponent = opponent if opponent else self.config.opponent
+        muzero_player = muzero_player if muzero_player else self.config.muzero_player
+        self_play_worker = self_play.SelfPlay.options(
+                num_cpus=0, num_gpus=num_gpus
+        ).remote(self.checkpoint, self.Game, self.config, numpy.random.randint(10000))
+
+        results = []
+
+        for i in range(num_arena):
+            print(f"Arena {i+1}/{num_arena}")
+            results.append(
+                    ray.get(
+                            self_play_worker.play_game.remote(
+                                    0,
+                                    0,
+                                    render,
+                                    opponent,
+                                    muzero_player,
+                                    arena=True
+                            )
+
+                    )
+            )
+
 
 @ray.remote(num_cpus=0, num_gpus=0)
 class CPUActor:
@@ -478,11 +515,12 @@ class CPUActor:
     def __init__(self):
         pass
 
-    def get_initial_weights(self, config):
+    @staticmethod
+    def get_initial_weights(config):
         model = models.MuZeroNetwork(config)
-        weigths = model.get_weights()
+        weights = model.get_weights()
         summary = str(model).replace("\n", " \n\n")
-        return weigths, summary
+        return weights, summary
 
 
 def hyperparameter_search(
@@ -648,6 +686,7 @@ if __name__ == "__main__":
                 "Play against MuZero",
                 "Test the game manually",
                 "Hyperparameter search",
+                "Arena vs other methods"
                 "Exit",
             ]
             print()
@@ -694,6 +733,8 @@ if __name__ == "__main__":
                     game_name, parametrization, budget, parallel_experiments, 20
                 )
                 muzero = MuZero(game_name, best_hyperparameters)
+            elif choice == 7:
+                load_model_menu(muzero, game_name)
             else:
                 break
             print("\nDone")

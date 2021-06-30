@@ -90,10 +90,10 @@ class MuZeroConfig:
         self.fc_policy_layers = [16]  # Define the hidden layers in the policy network
 
         ### Training
-        self.configuration = f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
+        self.folder_path = f'{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
+                           f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
-                                         os.path.basename(__file__)[:-3], datetime.datetime.now().strftime(
-                    "%Y-%m-%d--%H-%M-%S"), self.configuration)  # Path to store the model weights and TensorBoard logs
+                                         os.path.basename(__file__)[:-3], self.folder_path)  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
         self.training_steps = 500000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
@@ -301,7 +301,9 @@ class Dispatch:
         # Each event will have a list/dictionary
         # [Task_number, start_time, end_time, officer_assigned]
         # [-1, -1, -1, -1] -> initialization value
-        assignment = self.action_to_matrix(assignment)
+        if type(assignment) == int:
+            assignment = self.action_to_matrix(assignment)
+
         event_list = []
         for i in range(self.events.num_event):
             event_list.append({"task_id": -1, "start_time": -1, "end_time": -1, "officer_assigned": -1})
