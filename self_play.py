@@ -149,32 +149,35 @@ class SelfPlay:
                 )
 
                 # Choose the action
-                if opponent == "self" or muzero_player == self.game.to_play():
-                    # ray.util.pdb.set_trace()
-                    root, mcts_info = MCTS(self.config).run(
-                            self.model,
-                            stacked_observations,
-                            self.game.legal_actions(),
-                            self.game.to_play(),
-                            True,
-                    )
-                    action = self.select_action(
-                            root,
-                            temperature
-                            if not temperature_threshold or len(game_history.action_history) < temperature_threshold
-                            else 0,
-                    )
-
-                    if render:
-                        print(f'Tree depth: {mcts_info["max_tree_depth"]}')
-                        print(
-                                f"Root value for player {self.game.to_play()}: {root.value():.2f}"
-                        )
-                else:
-                    action, root = self.select_opponent_action(
-                            opponent, stacked_observations
-                    )
-
+                # if opponent == "self" or muzero_player == self.game.to_play():
+                #     # ray.util.pdb.set_trace()
+                #     root, mcts_info = MCTS(self.config).run(
+                #             self.model,
+                #             stacked_observations,
+                #             self.game.legal_actions(),
+                #             self.game.to_play(),
+                #             True,
+                #     )
+                #     action = self.select_action(
+                #             root,
+                #             temperature
+                #             if not temperature_threshold or len(game_history.action_history) < temperature_threshold
+                #             else 0,
+                #     )
+                #
+                #     if render:
+                #         print(f'Tree depth: {mcts_info["max_tree_depth"]}')
+                #         print(
+                #                 f"Root value for player {self.game.to_play()}: {root.value():.2f}"
+                #         )
+                # else:
+                #     action, root = self.select_opponent_action(
+                #             opponent, stacked_observations
+                #     )
+                action = numpy.random.randint(0,
+                                              self.game.officer.num_officer,
+                                              size=(self.game.event.num_event,
+                                                    self.game.event.num_task))
                 observation, reward, done = self.game.step(action)
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
@@ -190,13 +193,33 @@ class SelfPlay:
                 else:
                     reward = 0
 
-                game_history.store_search_statistics(root, self.config.action_space)
+                game_history.store_search_statistics(None, self.config.action_space)
 
                 # Next batch
                 game_history.action_history.append(action)
                 game_history.observation_history.append(observation)
                 game_history.reward_history.append(reward)
                 game_history.to_play_history.append(self.game.to_play())
+
+        return game_history
+
+    def play_random_game(self):
+        game_history = GameHistory()
+        observation = self.game.reset()
+        game_history.action_history.append(0)
+        game_history.observation_history.append(observation)
+        game_history.reward_history.append(0)
+        game_history.to_play_history.append(self.game.to_play())
+        game_history.original_reward_history.append(0)
+
+        r_assignment = numpy.random.randint(0,
+                                            self.game.officer.num_officer,
+                                            size=(self.game.event.num_event,
+                                                  self.game.event.num_task))
+
+        r_observation, r_reward, r_done = self.game.step(r_assignment)
+
+        game_history.random_reward.append(r_reward)
 
         return game_history
 
@@ -265,20 +288,16 @@ class SelfPlay:
         # ==== Random agent ====
 
         if opponent == "random":
-            r_assignment = self.random_action()
+            r_assignment = numpy.random.randint(0,
+                                                self.game.officer.num_officer,
+                                                size=(self.game.event.num_event,
+                                                      self.game.event.num_task))
 
             r_observation, r_reward, r_done = self.game.step(r_assignment)
 
             game_history.random_reward.append(r_reward)
 
         return game_history
-
-    def random_action(self):
-        assignment = numpy.random.randint(0, )
-        action = numpy.random.randint(0,
-                                      self.officers.num_officer,
-                                      size=(self.events.num_event, self.events.num_task))
-        return action
 
     def close_game(self):
         self.game.close()
