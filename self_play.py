@@ -1,4 +1,5 @@
 import math
+import random
 import time
 
 import numpy
@@ -71,6 +72,7 @@ class SelfPlay:
                             "action_table": game_history.action_history,
                             "total_reward": sum(game_history.reward_history),
                             "final_reward": game_history.reward_history[-1],
+                            "random_reward": game_history.random_reward[-1],
                             "final_original_reward": game_history.original_reward_history[-1],
                             "mean_value": numpy.mean(
                                     [value for value in game_history.root_values if value]
@@ -129,6 +131,7 @@ class SelfPlay:
         game_history.reward_history.append(0)
         game_history.to_play_history.append(self.game.to_play())
         game_history.original_reward_history.append(0)
+        game_history.random_reward.append(0)
 
         done = False
 
@@ -176,17 +179,29 @@ class SelfPlay:
                     )
 
                 observation, reward, done = self.game.step(action)
+
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
                     self.game.render()
 
+                max_time = -self.game.env.max_time
                 if done:
-                    # Add the original reward for further use or comparison
                     game_history.original_reward_history.append(reward)
-                    # Normalize reward to exponential function (e/2.71)^(-reward) to keep in [0,1)
-                    reward = math.pow((E / P), reward)
-                    if arena:
-                        self.game.render()
+                    # Random agent
+                    self.game.env.reset_action_table()
+                    random_assignment = self.random_action()
+                    _, r_reward, _ = self.game.step(random_assignment)
+
+                    vs_random_reward = r_reward / reward
+                    game_history.random_reward.append(vs_random_reward)
+
+                    # Divide for the worst case
+                    if vs_random_reward > 1:
+                        reward = max_time / reward
+                    else:
+                        reward = -1
+
+                    # Add the original reward for further use or comparison
                 else:
                     reward = 0
 
@@ -213,7 +228,7 @@ class SelfPlay:
         game_history.to_play_history.append(self.game.to_play())
         game_history.original_reward_history.append(0)
         # Random agent
-        game_history.random_reward.append(0)
+        # game_history.random_reward.append(0)
 
         done = False
 
@@ -246,11 +261,15 @@ class SelfPlay:
                         temperature
                         if not temperature_threshold or len(game_history.action_history) < temperature_threshold else 0,
                 )
-
                 observation, reward, done = self.game.step(action)
+
+                max_time = self.game.env.max_time
                 if done:
                     game_history.original_reward_history.append(reward)
-                    reward = math.pow((E / P), reward)
+                    # Divide for the worst case
+                    reward = reward / max_time
+
+                    # reward = math.pow((E / P), reward)
                 else:
                     reward = 0
 
@@ -264,21 +283,25 @@ class SelfPlay:
 
         # ==== Random agent ====
 
-        if opponent == "random":
-            r_assignment = self.random_action()
-
-            r_observation, r_reward, r_done = self.game.step(r_assignment)
-
-            game_history.random_reward.append(r_reward)
+        # if opponent == "random":
+        #     r_assignment = self.random_action()
+        #
+        #     r_observation, r_reward, r_done = self.game.step(r_assignment)
+        #
+        #     game_history.random_reward.append(r_reward)
 
         return game_history
 
     def random_action(self):
-        assignment = numpy.random.randint(0, )
-        action = numpy.random.randint(0,
-                                      self.officers.num_officer,
-                                      size=(self.events.num_event, self.events.num_task))
-        return action
+        # assignment = numpy.random.randint(0, )
+        # action = numpy.random.randint(0,
+        #                               self.officers.num_officer,
+        #                               size=(self.events.num_event, self.events.num_task))
+        assignment = numpy.random.randint(0,
+                                          self.game.officer.num_officer,
+                                          size=(self.game.event.num_event,
+                                                self.game.event.num_task))
+        return assignment
 
     def close_game(self):
         self.game.close()

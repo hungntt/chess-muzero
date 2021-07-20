@@ -1,5 +1,6 @@
 import argparse
 import logging
+import math
 
 import coloredlogs
 
@@ -27,6 +28,21 @@ def init_logger(filename, mode='a'):
     log.addHandler(fh)
     coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
     return log
+
+
+def manage_gpus(num_gpus, config, log_in_tensorboard):
+    if 0 < num_gpus:
+        num_gpus_per_worker = num_gpus / (
+                config.train_on_gpu
+                + config.num_workers * config.selfplay_on_gpu
+                + log_in_tensorboard * config.selfplay_on_gpu
+                + config.use_last_model_value * config.reanalyse_on_gpu
+        )
+        if 1 < num_gpus_per_worker:
+            num_gpus_per_worker = math.floor(num_gpus_per_worker)
+    else:
+        num_gpus_per_worker = 0
+    return num_gpus_per_worker
 
 
 class DotDict(dict):

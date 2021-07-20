@@ -1,5 +1,4 @@
 import datetime
-import math
 import os
 from abc import ABC
 
@@ -7,26 +6,25 @@ import numpy as np
 import ray
 import torch
 
-from utils import DotDict
 from .abstract_game import AbstractGame
 
 IDLE = 1
 RUNNING = 2
 COMPLETED = 3
 
-NUM_OFFICER = 5
-NUM_TASK = 4
-NUM_EVENT = 4
+NUM_OFFICER = 3
+NUM_TASK = 2
+NUM_EVENT = 2
 
 
-def input_config():
-    ### Input config for Dispatch
-    args = DotDict({
-        'num_officer': int(input("O: ")),
-        'num_event': int(input("E: ")),
-        'num_task': int(input("T: ")),
-    })
-    return args
+# def input_config():
+#     ### Input config for Dispatch
+#     args = DotDict({
+#         'num_officer': int(input("O: ")),
+#         'num_event': int(input("E: ")),
+#         'num_task': int(input("T: ")),
+#     })
+#     return args
 
 
 class MuZeroConfig:
@@ -68,7 +66,7 @@ class MuZeroConfig:
 
         ### Network
         self.network = "resnet"  # "resnet" / "fullyconnected"
-        self.support_size = 50  # Value and reward are scaled (with almost sqrt) and encoded on a vector with a range of -support_size to support_size. Choose it so that support_size <= sqrt(max(abs(discounted reward)))
+        self.support_size = 10  # Value and reward are scaled (with almost sqrt) and encoded on a vector with a range of -support_size to support_size. Choose it so that support_size <= sqrt(max(abs(discounted reward)))
 
         # Residual Network
         self.downsample = False  # Downsample observations before representation network, False / "CNN" (lighter) / "resnet" (See paper appendix Network Architecture)
@@ -92,10 +90,17 @@ class MuZeroConfig:
         ### Training
         self.folder_path = f'{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
                            f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
+        self.folder_random_path = f'RANDOM_{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
+                                  f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
-                                         os.path.basename(__file__)[:-3], self.folder_path)  # Path to store the model weights and TensorBoard logs
+                                         os.path.basename(__file__)[:-3],
+                                         self.folder_path)  # Path to store the model weights and TensorBoard logs
+        self.random_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
+                                        os.path.basename(__file__)[:-3], self.folder_random_path)
+        # self.arena_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../arena",
+        #                                  os.path.basename(__file__)[:-3], self.folder_path)
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 500000  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 150000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
@@ -265,6 +270,9 @@ class Dispatch:
         # In each event which task (task ID) is running. Position is event ID and value is Task ID
         self.running_task = [0] * self.events.num_event
 
+        self.max_time = np.max(np.array(self.officers.capability)) * self.events.num_problems + \
+                        np.max(np.array(self.events.transition_matrix)) * self.num_problems
+
     def random_capability(self):
         actual_capability = []
         # Introduce gaussian randomness into the actual time taken
@@ -290,6 +298,9 @@ class Dispatch:
 
         return self.get_observation()
 
+    def reset_action_table(self):
+        self.action_table = np.full(self.events.num_task * self.events.num_event, -1, dtype="int32")
+
     def step(self, assignment):
         #  Simulation
         # Input: assignment of the officers is a matrix
@@ -301,7 +312,7 @@ class Dispatch:
         # Each event will have a list/dictionary
         # [Task_number, start_time, end_time, officer_assigned]
         # [-1, -1, -1, -1] -> initialization value
-        if type(assignment) == int:
+        if type(assignment) == int or isinstance(assignment, (int, np.integer)):
             assignment = self.action_to_matrix(assignment)
 
         event_list = []
