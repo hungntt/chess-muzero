@@ -3,6 +3,7 @@ import importlib
 import math
 import os
 import pickle
+import statistics
 import sys
 import time
 from glob import glob
@@ -19,6 +20,7 @@ import replay_buffer
 import self_play
 import shared_storage
 import trainer
+from logger import create_logger
 from utils import main_parser, manage_gpus
 from visualization import Visualization
 
@@ -131,6 +133,8 @@ class MuZero:
         self.replay_buffer_worker = None
         self.shared_storage_worker = None
         self.random_workers = None
+        self.reward = []
+        self.logger = create_logger('logger', self.config.logger_path)
 
     def train(self, log_in_tensorboard=True):
         """
@@ -271,6 +275,7 @@ class MuZero:
                 # Logging for actions
                 # writer.add_text("Action_table", info["action_table"], counter)
                 # Logging for rewards
+                self.reward.append(info["final_reward"])
                 if info["training_step"] > 10:
                     writer.add_scalar(
                             "1.Total_reward/1.Total_reward", info["total_reward"], counter,
@@ -337,6 +342,11 @@ class MuZero:
 
                     counter += 1
                     time.sleep(0.5)
+
+            print(self.reward)
+            self.logger.info('Reward: %s', self.reward)
+            self.logger.info('Mean: %s', statistics.mean(self.reward))
+
         except KeyboardInterrupt:
             pass
 

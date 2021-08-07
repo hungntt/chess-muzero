@@ -31,6 +31,7 @@ class MuZeroConfig:
     def __init__(self):
         # More information is available here: https://github.com/werner-duvaud/muzero-general/wiki/Hyperparameter-Optimization
         # args = input_config()
+        self.method = 0
         self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
         self.event = Events(NUM_EVENT, NUM_TASK)
         self.env = Dispatch(officers=self.officer, events=self.event)
@@ -90,15 +91,16 @@ class MuZeroConfig:
         ### Training
         self.folder_path = f'{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
                            f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
-        self.folder_random_path = f'RANDOM_{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
-                                  f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
+        # self.folder_random_path = f'RANDOM_{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
+        #                           f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
                                          os.path.basename(__file__)[:-3],
                                          self.folder_path)  # Path to store the model weights and TensorBoard logs
-        self.random_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
-                                        os.path.basename(__file__)[:-3], self.folder_random_path)
+        # self.random_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
+        #                                 os.path.basename(__file__)[:-3], self.folder_random_path)
         # self.arena_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../arena",
         #                                  os.path.basename(__file__)[:-3], self.folder_path)
+        self.logger_path = os.path.join(self.results_path, "/logger.txt")  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
         self.training_steps = 150000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
