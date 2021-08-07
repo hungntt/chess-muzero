@@ -3,6 +3,7 @@ import importlib
 import math
 import os
 import pickle
+import statistics
 import sys
 import time
 from glob import glob
@@ -19,6 +20,7 @@ import replay_buffer
 import self_play
 import shared_storage
 import trainer
+from logger import create_logger
 from utils import main_parser, manage_gpus
 from visualization import Visualization
 
@@ -131,6 +133,8 @@ class MuZero:
         self.replay_buffer_worker = None
         self.shared_storage_worker = None
         self.random_workers = None
+        self.reward = []
+        self.logger = None
 
     def train(self, log_in_tensorboard=True):
         """
@@ -141,6 +145,7 @@ class MuZero:
         """
         if log_in_tensorboard or self.config.save_model:
             os.makedirs(self.config.results_path, exist_ok=True)
+            self.logger = create_logger('logger', self.config.logger_path)
 
         # Manage GPUs
         if 0 < self.num_gpus:
@@ -271,7 +276,8 @@ class MuZero:
                 # Logging for actions
                 # writer.add_text("Action_table", info["action_table"], counter)
                 # Logging for rewards
-                if info["training_step"] > 10:
+
+                if info["final_original_reward"] != 0:
                     writer.add_scalar(
                             "1.Total_reward/1.Total_reward", info["total_reward"], counter,
                     )
@@ -328,6 +334,7 @@ class MuZero:
                     writer.add_scalar("3.Loss/Value_loss", info["value_loss"], counter)
                     writer.add_scalar("3.Loss/Reward_loss", info["reward_loss"], counter)
                     writer.add_scalar("3.Loss/Policy_loss", info["policy_loss"], counter)
+                    self.reward.append(info["final_original_reward"])
                     print(
                             f'Final reward: {info["final_original_reward"]:.2f}. Training step: {info["training_step"]}/'
                             f'{self.config.training_steps}. Played games: {info["num_played_games"]}. '
@@ -337,6 +344,10 @@ class MuZero:
 
                     counter += 1
                     time.sleep(0.5)
+
+            self.logger.info('Reward: %s', self.reward)
+            self.logger.info('Mean: %s', statistics.mean(self.reward))
+
         except KeyboardInterrupt:
             pass
 

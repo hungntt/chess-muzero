@@ -1,4 +1,6 @@
+import itertools
 import math
+import operator
 import random
 import time
 
@@ -184,6 +186,14 @@ class SelfPlay:
                     print(f"Played action: {self.game.action_to_string(action)}")
                     self.game.render()
 
+                # if self.config.method == 0:
+                # action = 0
+                # observation, reward, done = self.brute_force()
+                # random_assignment = self.random_action()
+                # _, r_reward, _ = self.game.step(random_assignment)
+                # vs_random_reward = r_reward / reward
+                # game_history.random_reward.append(vs_random_reward)
+
                 max_time = -self.game.env.max_time
                 if done:
                     game_history.original_reward_history.append(reward)
@@ -214,6 +224,26 @@ class SelfPlay:
                 game_history.to_play_history.append(self.game.to_play())
 
         return game_history
+
+    def brute_force(self):
+        permutations = {}
+        observation = None
+        done = None
+
+        officers = list(range(self.game.officer.num_officer))
+        permutations = dict.fromkeys([p for p in itertools.product(officers,
+                                                                   repeat=(self.game.event.num_event *
+                                                                           self.game.event.num_task))])
+
+        for permutation in permutations.keys():
+            self.game.env.reset_action_table()
+            observation, reward, done = self.game.step(
+                    numpy.asarray(permutation).reshape(self.game.event.num_event, self.game.event.num_task))
+            permutations[permutation] = reward
+
+        highest_reward = max(permutations.items(), key=operator.itemgetter(1))[1]
+
+        return observation, highest_reward, done
 
     def arena_play_games(self,
                          temperature,
