@@ -100,9 +100,9 @@ class MuZeroConfig:
         #                                 os.path.basename(__file__)[:-3], self.folder_random_path)
         # self.arena_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../arena",
         #                                  os.path.basename(__file__)[:-3], self.folder_path)
-        self.logger_path = os.path.join(self.results_path, "/logger.txt")  # Path to store the model weights and TensorBoard logs
+        self.logger_path = os.path.join(self.results_path, "./logger.txt")  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 150000  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 300000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)

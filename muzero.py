@@ -1,10 +1,10 @@
 import copy
 import importlib
+import logging
 import math
 import os
 import pickle
 import statistics
-import sys
 import time
 from glob import glob
 
@@ -20,9 +20,7 @@ import replay_buffer
 import self_play
 import shared_storage
 import trainer
-from logger import create_logger
-from utils import main_parser, manage_gpus
-from visualization import Visualization
+from utils import main_parser
 
 
 class MuZero:
@@ -145,7 +143,7 @@ class MuZero:
         """
         if log_in_tensorboard or self.config.save_model:
             os.makedirs(self.config.results_path, exist_ok=True)
-            self.logger = create_logger('logger', self.config.logger_path)
+            self.logger = self.create_logger('logger', self.config.logger_path)
 
         # Manage GPUs
         if 0 < self.num_gpus:
@@ -502,52 +500,17 @@ class MuZero:
         input("Press enter to close all plots")
         dm.close_all()
 
-    # def random_test(self, log_in_tensorboard=True):
-    #     if log_in_tensorboard:
-    #         os.makedirs(self.config.random_path, exist_ok=True)
-    #
-    #     self.random_workers = [
-    #         self_play.SelfPlay.options(
-    #                 num_cpus=0,
-    #                 num_gpus=num_gpus_per_worker if self.config.selfplay_on_gpu else 0,
-    #         )
-    #     ]
+    @staticmethod
+    def create_logger(name, filename, mode='a'):
+        formatter = logging.Formatter('%(message)s')
+        fh = logging.FileHandler(filename=filename, mode=mode)
+        fh.setFormatter(formatter)
 
-    def arena(self,
-              opponent=None,
-              muzero_player=None,
-              num_arena=5,
-              num_gpus=0):
-        opponent = opponent if opponent else self.config.opponent
-        # muzero_player = muzero_player if muzero_player else self.config.muzero_player
-        self_play_worker = self_play.SelfPlay.options(
-                num_cpus=0, num_gpus=num_gpus
-        ).remote(self.checkpoint, self.Game, self.config, numpy.random.randint(10000))
+        log = logging.getLogger(name)
+        log.setLevel(logging.DEBUG)
+        log.addHandler(fh)
 
-        results = []
-        muzero_results = []
-        random_results = []
-
-        for i in range(num_arena):
-            print(f"Arena {i + 1}/{num_arena}")
-            result = ray.get(
-                    self_play_worker.arena_play_games.remote(
-                            0,
-                            0,
-                            opponent,
-                    )
-            )
-            results.append(result)
-            muzero_results.append(result.original_reward_history[1])
-            random_results.append(result.random_reward[1])
-
-        self_play_worker.close_game.remote()
-
-        # plt visualization
-        viz = Visualization(game=self.Game, muzero=muzero_results, random=random_results)
-        viz.visualize()
-
-        # ray.util.pdb.set_trace()
+        return log
 
 
 @ray.remote(num_cpus=0, num_gpus=0)
