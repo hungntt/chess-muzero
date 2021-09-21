@@ -334,7 +334,8 @@ class MuZero:
                     writer.add_scalar("3.Loss/Policy_loss", info["policy_loss"], counter)
                     self.reward.append(info["final_original_reward"])
                     print(
-                            f'Final reward: {info["final_original_reward"]:.2f}. Training step: {info["training_step"]}/'
+                            f'Final reward: {info["final_original_reward"]:.2f}. '
+                            f'Training step: {info["training_step"]}/'
                             f'{self.config.training_steps}. Played games: {info["num_played_games"]}. '
                             f'Loss: {info["total_loss"]:.2f}',
                             end="\r",
