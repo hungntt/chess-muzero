@@ -292,6 +292,7 @@ class Dispatch:
         self.action_table = np.full(self.events.num_task * self.events.num_event, -1, dtype="int32")
         if reset_officers:
             self.officers.reset_capability()
+            self.reset_actual_capability()
 
         # reset events
         if reset_events:
