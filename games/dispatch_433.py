@@ -1,5 +1,4 @@
 import datetime
-import math
 import os
 from abc import ABC
 
@@ -7,34 +6,34 @@ import numpy as np
 import ray
 import torch
 
-from utils import DotDict
 from .abstract_game import AbstractGame
 
 IDLE = 1
 RUNNING = 2
 COMPLETED = 3
 
+NUM_OFFICER = 4
+NUM_TASK = 3
+NUM_EVENT = 3
 
-# NUM_OFFICER = 3
-# NUM_TASK = 2
-# NUM_EVENT = 2
 
-def input_config():
-    ### Input config for Dispatch
-    args = DotDict({
-        'num_officer': int(input("Number of Officers: ")),
-        'num_event': int(input("Number of Events: ")),
-        'num_task': int(input("Number of Tasks")),
-    })
-    return args
+# def input_config():
+#     ### Input config for Dispatch
+#     args = DotDict({
+#         'num_officer': int(input("O: ")),
+#         'num_event': int(input("E: ")),
+#         'num_task': int(input("T: ")),
+#     })
+#     return args
 
 
 class MuZeroConfig:
     def __init__(self):
         # More information is available here: https://github.com/werner-duvaud/muzero-general/wiki/Hyperparameter-Optimization
-        args = input_config()
-        self.officer = Officers(args.num_officer, args.num_event, args.num_task)
-        self.event = Events(args.num_event, args.num_task)
+        # args = input_config()
+        self.method = 0
+        self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
+        self.event = Events(NUM_EVENT, NUM_TASK)
         self.env = Dispatch(officers=self.officer, events=self.event)
 
         self.seed = 0  # Seed for numpy, torch and the game
@@ -42,9 +41,9 @@ class MuZeroConfig:
 
         ### Game
         self.observation_shape = self.env.get_observation().shape  # Dimensions of the game observation, must be 3D (channel, height, width). For a 1D array, please reshape it to (1, 1, length of array)
-        self.action_space = list(range(args.num_officer))
+        self.action_space = list(range(NUM_OFFICER))
         self.players = list(range(1))  # List of players. You should only edit the length
-        self.stacked_observations = 100  # Number of previous observations and previous actions to add to the current observation
+        self.stacked_observations = 0  # Number of previous observations and previous actions to add to the current observation
 
         # Evaluate
         self.muzero_player = 0  # Turn Muzero begins to play (0: MuZero plays first, 1: MuZero plays second)
@@ -53,7 +52,7 @@ class MuZeroConfig:
         ### Self-Play
         self.num_workers = 4  # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.selfplay_on_gpu = True
-        self.max_moves = args.num_officer * 3  # Maximum number of moves if game is not finished before
+        self.max_moves = NUM_OFFICER * NUM_TASK * NUM_EVENT  # Maximum number of moves if game is not finished before
         self.num_simulations = 25  # Number of future moves self-simulated
         self.discount = 1  # Chronological discount of the reward
         self.temperature_threshold = None  # Number of moves before dropping the temperature given by visit_softmax_temperature_fn to 0 (ie selecting the best action). If None, visit_softmax_temperature_fn is used every time
@@ -72,7 +71,7 @@ class MuZeroConfig:
 
         # Residual Network
         self.downsample = False  # Downsample observations before representation network, False / "CNN" (lighter) / "resnet" (See paper appendix Network Architecture)
-        self.blocks = 1  # Number of blocks in the ResNet
+        self.blocks = 4  # Number of blocks in the ResNet
         self.channels = 16  # Number of channels in the ResNet
         self.reduced_channels_reward = 16  # Number of channels in reward head
         self.reduced_channels_value = 16  # Number of channels in value head
@@ -90,11 +89,20 @@ class MuZeroConfig:
         self.fc_policy_layers = [16]  # Define the hidden layers in the policy network
 
         ### Training
+        self.folder_path = f'{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
+                           f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
+        # self.folder_random_path = f'RANDOM_{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}' \
+        #                           f'{NUM_OFFICER}O-{NUM_EVENT}E-{NUM_TASK}T'
         self.results_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
-                                         os.path.basename(__file__)[:-3], datetime.datetime.now().strftime(
-                    "%Y-%m-%d--%H-%M-%S"))  # Path to store the model weights and TensorBoard logs
+                                         os.path.basename(__file__)[:-3],
+                                         self.folder_path)  # Path to store the model weights and TensorBoard logs
+        # self.random_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../results",
+        #                                 os.path.basename(__file__)[:-3], self.folder_random_path)
+        # self.arena_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../arena",
+        #                                  os.path.basename(__file__)[:-3], self.folder_path)
+        self.logger_path = os.path.join(self.results_path, "./logger.txt")  # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
-        self.training_steps = 1000000  # Total number of training steps (ie weights update according to a batch)
+        self.training_steps = 300000  # Total number of training steps (ie weights update according to a batch)
         self.batch_size = 64  # Number of parts of games to train on at each training step
         self.checkpoint_interval = 10  # Number of training steps before using the model for self-playing
         self.value_loss_weight = 0.25  # Scale the value loss to avoid overfitting of the value function, paper recommends 0.25 (See paper appendix Reanalyze)
@@ -131,9 +139,9 @@ class MuZeroConfig:
 
 class Game(AbstractGame, ABC):
     def __init__(self, seed=None):
-        self.args = input_config()
-        self.officer = Officers(self.args.num_officer, self.args.num_event, self.args.num_task)
-        self.event = Events(self.args.num_event, self.args.num_task)
+        # self.args = input_config()
+        self.officer = Officers(NUM_OFFICER, NUM_EVENT, NUM_TASK)
+        self.event = Events(NUM_EVENT, NUM_TASK)
         self.env = Dispatch(officers=self.officer, events=self.event)
 
     def step(self, action):
@@ -264,6 +272,9 @@ class Dispatch:
         # In each event which task (task ID) is running. Position is event ID and value is Task ID
         self.running_task = [0] * self.events.num_event
 
+        self.max_time = np.max(np.array(self.officers.capability)) * self.events.num_problems + \
+                        np.max(np.array(self.events.transition_matrix)) * self.num_problems
+
     def random_capability(self):
         actual_capability = []
         # Introduce gaussian randomness into the actual time taken
@@ -281,6 +292,7 @@ class Dispatch:
         self.action_table = np.full(self.events.num_task * self.events.num_event, -1, dtype="int32")
         if reset_officers:
             self.officers.reset_capability()
+            self.reset_actual_capability()
 
         # reset events
         if reset_events:
@@ -288,6 +300,9 @@ class Dispatch:
             self.obs = self.get_observation()  # Update observation
 
         return self.get_observation()
+
+    def reset_action_table(self):
+        self.action_table = np.full(self.events.num_task * self.events.num_event, -1, dtype="int32")
 
     def step(self, assignment):
         #  Simulation
@@ -300,26 +315,30 @@ class Dispatch:
         # Each event will have a list/dictionary
         # [Task_number, start_time, end_time, officer_assigned]
         # [-1, -1, -1, -1] -> initialization value
-        assignment = self.action_to_matrix(assignment)
+        if type(assignment) == int or isinstance(assignment, (int, np.integer)):
+            assignment = self.action_to_matrix(assignment)
+
         event_list = []
         for i in range(self.events.num_event):
             event_list.append({"task_id": -1, "start_time": -1, "end_time": -1, "officer_assigned": -1})
 
-        # book-keeping which officer is working
+        # book-keeping which officer is working [False, False, False]
         officer_occupied = [False] * self.officers.num_officer
 
-        # book-keeping officer location: -1: Base-station, 0:event_0, ...
+        # book-keeping officer location: -1: Base-station, 0:event_0, ... [-1, -1, -1]
         officer_location = [-1] * self.officers.num_officer
 
         # keep track of status of event_task_status:
+        # array([[1, 1],
+        #        [1, 1]])
         event_task_status = self.event_task_status_start.copy()
 
-        # get the sequence of event will happen
+        # get the sequence of event will happen occurrence = {0: 7, 1: 8}
         occurrence = {}
         for i, occur_time in enumerate(self.events.occurrence):
             occurrence[i] = occur_time
 
-        # book-keeping for end-time of event
+        # book-keeping for end-time of event end_time = {0: -1, 1: -1}
         end_time = {}
         for i in range(len(occurrence)):
             end_time[i] = -1
@@ -480,17 +499,13 @@ class Dispatch:
         self.obs = self.get_observation()
         reward = -np.max(event_time_end)
 
-        if done:
-            reward = math.exp(reward)
-        else:
-            reward = 0
-
         return self.get_observation(), reward, done
 
-    def legal_actions(self):
+    @staticmethod
+    def legal_actions():
         # legals = [i for i, value in enumerate(self.action_table) if value == -1]
         # return legals
-        legals = list(range(self.officers.num_officer))
+        legals = list(range(NUM_OFFICER))
         return legals
 
     def get_observation(self) -> np.ndarray:
